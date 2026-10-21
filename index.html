@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>包头中学2027届3班</title>
+    <!-- 网站图标留空 -->
+    <style>
+        /* ---------- 基础重置 ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #f7f9fc 0%, #e6ecf5 100%);
+            padding: 1.5rem;
+            text-align: center;
+            overflow-x: hidden;
+        }
+
+        /* ---------- 卡片入场动画 ---------- */
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 3rem;
+            padding: 4rem 3rem;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.35),
+                        0 6px 18px rgba(0, 0, 0, 0.05),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+
+            /* 入场动画 */
+            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes cardEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(40px) scale(0.96);
+            }
+            60% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ---------- 大字欢迎语 ---------- */
+        .welcome-text {
+            font-size: clamp(2.6rem, 10vw, 5.2rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            color: #1a2b3c;
+            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.08);
+            margin-bottom: 2.8rem;
+            word-break: break-word;
+
+            /* 单独入场 + 持续微浮动 */
+            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both,
+                       gentleFloat 5s ease-in-out 1.2s infinite;
+        }
+
+        @keyframes textEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(24px) scale(0.94);
+                filter: blur(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* 持续的小幅度浮动，轻盈感 */
+        @keyframes gentleFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        /* 省略号装饰 */
+        .welcome-text::after {
+            content: " 后面懒得打了";
+            font-size: 0.7em;
+            opacity: 0.8;
+            display: inline-block;
+            margin-left: 0.2rem;
+            animation: sparkle 2.8s ease-in-out 1.5s infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% {
+                opacity: 0.5;
+                transform: scale(1) rotate(0deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.25) rotate(8deg);
+            }
+        }
+
+        /* ---------- 按钮：入场 + 呼吸光晕 + 悬停 + 点击 ---------- */
+        .go-button {
+            display: inline-block;
+            background: #1e3c5c;
+            color: white;
+            font-size: clamp(1.6rem, 5vw, 2.2rem);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 1.1rem 3.5rem;
+            border-radius: 60px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+            background-image: linear-gradient(145deg, #244a6e, #0f2a41);
+            box-shadow: 0 15px 25px -8px rgba(20, 45, 70, 0.4),
+                        0 8px 12px -4px rgba(0, 0, 0, 0.1),
+                        inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        box-shadow 0.3s ease,
+                        letter-spacing 0.3s ease,
+                        background-image 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+
+            /* 入场 */
+            animation: btnEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both,
+                       breathe 3.2s ease-in-out 1.4s infinite;
+        }
+
+        @keyframes btnEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(28px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* 呼吸光晕 — 结合 box-shadow 和轻微缩放 */
+        @keyframes breathe {
+            0%, 100% {
+                box-shadow: 0 15px 25px -8px rgba(20, 45, 70, 0.4),
+                            0 8px 12px -4px rgba(0, 0, 0, 0.1),
+                            inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 22px 36px -8px rgba(40, 90, 140, 0.55),
+                            0 10px 16px -6px rgba(0, 0, 0, 0.15),
+                            inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+                transform: scale(1.02);
+            }
+        }
+
+        /* 悬停时暂停呼吸（用更高的优先级覆盖），浮起 + 光感 */
+        .go-button:hover {
+            animation-play-state: paused, paused; /* 暂停入场（已结束）和呼吸 */
+            background: #0c2338;
+            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
+            box-shadow: 0 28px 40px -12px rgba(10, 30, 50, 0.6),
+                        0 10px 18px -6px rgba(0, 0, 0, 0.2),
+                        inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+            transform: translateY(-6px) scale(1.03);
+            letter-spacing: 0.08em;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        box-shadow 0.35s ease,
+                        letter-spacing 0.3s ease,
+                        background-image 0.3s ease;
+        }
+
+        /* 按下效果: 内陷 */
+        .go-button:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 8px 15px -5px rgba(0, 20, 40, 0.6),
+                        inset 0 6px 12px rgba(0, 0, 0, 0.35);
+            background-image: linear-gradient(145deg, #122b40, #071a28);
+            transition: transform 0.06s, box-shadow 0.06s, background-image 0.06s;
+        }
+
+        /* 焦点可见 */
+        .go-button:focus-visible {
+            outline: 4px solid #96c0e6;
+            outline-offset: 6px;
+        }
+
+        /* 为按钮增加一点动态光泽（伪元素） */
+        .go-button::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 60px;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+        }
+
+        .go-button:hover::before {
+            opacity: 1;
+        }
+
+        /* ---------- 背景装饰性漂浮圆点（动效氛围） ---------- */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.25;
+            z-index: 0;
+            pointer-events: none;
+            animation: orbDrift 18s infinite alternate ease-in-out;
+        }
+
+        .orb-1 {
+            width: 320px;
+            height: 320px;
+            background: #6a9fd8;
+            top: -80px;
+            left: -100px;
+            animation-duration: 22s;
+        }
+
+        .orb-2 {
+            width: 400px;
+            height: 400px;
+            background: #a3c6e9;
+            bottom: -150px;
+            right: -120px;
+            animation-duration: 26s;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 260px;
+            height: 260px;
+            background: #c1d9f0;
+            top: 40%;
+            right: 5%;
+            animation-duration: 19s;
+            animation-delay: -10s;
+            opacity: 0.18;
+        }
+
+        @keyframes orbDrift {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            50% {
+                transform: translate(30px, -25px) scale(1.08);
+            }
+            100% {
+                transform: translate(-20px, 20px) scale(0.96);
+            }
+        }
+
+        /* 卡片相对层级 */
+        .welcome-card {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* 小屏优化 */
+        @media (max-width: 480px) {
+            .welcome-card {
+                padding: 3rem 1.8rem;
+                border-radius: 2rem;
+            }
+
+            .welcome-text {
+                margin-bottom: 2.2rem;
+            }
+
+            .go-button {
+                padding: 0.9rem 2.2rem;
+            }
+        }
+
+        /* 尊重减少动效偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景漂浮光斑装饰 -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div class="welcome-card">
+        <!-- 一行大字：欢迎（省略感用✨） -->
+        <div class="welcome-text">欢迎</div>
+
+        <!-- 按钮：Let's go!!! 跳转 content.html -->
+        <a href="content.html" class="go-button" role="button">Let's go!!!</a>
+    </div>
+
+    <!-- 纯 HTML 跳转，无需额外 JS -->
+</body>
+</html>
