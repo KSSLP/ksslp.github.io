@@ -20,28 +20,81 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(145deg, #f7f9fc 0%, #e6ecf5 100%);
+            background: #f4f7fb;
             padding: 1.5rem;
             text-align: center;
             overflow-x: hidden;
+            position: relative;
         }
 
-        /* ---------- 卡片入场动画 ---------- */
+        /* ---------- 左上角超链接 (沅神开播了) ---------- */
+        .top-left-link {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 10;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #183e5c;
+            text-decoration: underline; /* 添加下划线 */
+            text-decoration-color: currentColor; /* 下划线颜色与文字同步 */
+            text-underline-offset: 4px; /* 下划线稍微往下一点，不贴字 */
+            text-decoration-thickness: 2px; /* 下划线稍微加粗，更有质感 */
+            
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 20, 40, 0.08);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            letter-spacing: 0.05em;
+        }
+
+        .top-left-link:hover {
+            background: #183e5c;
+            color: #ffffff;
+            text-decoration-color: #ffffff; /* 悬停时下划线随文字变白 */
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 10px 25px rgba(20, 45, 70, 0.3);
+        }
+
+        .top-left-link:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 0 2px 8px rgba(0, 20, 40, 0.2);
+        }
+
+        /* 小屏幕适配 */
+        @media (max-width: 480px) {
+            .top-left-link {
+                top: 1rem;
+                left: 1rem;
+                font-size: 0.85rem;
+                padding: 0.5rem 1rem;
+                text-underline-offset: 3px;
+                text-decoration-thickness: 1.5px;
+            }
+        }
+
+        /* ---------- 卡片容器 ---------- */
         .welcome-card {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             border-radius: 3rem;
-            padding: 4rem 3rem;
-            max-width: 800px;
+            padding: 4.5rem 3rem;
+            max-width: 900px;
             width: 100%;
-            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.35),
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
                         0 6px 18px rgba(0, 0, 0, 0.05),
                         inset 0 1px 4px rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.9);
 
             /* 入场动画 */
             animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+            position: relative;
+            z-index: 2;
         }
 
         @keyframes cardEnter {
@@ -49,29 +102,32 @@
                 opacity: 0;
                 transform: translateY(40px) scale(0.96);
             }
-            60% {
-                opacity: 1;
-            }
             100% {
                 opacity: 1;
                 transform: translateY(0) scale(1);
             }
         }
 
-        /* ---------- 大字欢迎语 ---------- */
+        /* ---------- 大字标题 ---------- */
         .welcome-text {
-            font-size: clamp(2.6rem, 10vw, 5.2rem);
+            /* 使用 clamp 保证大屏够大，小屏不溢出 */
+            font-size: clamp(2rem, 9vw, 6rem);
             font-weight: 800;
-            letter-spacing: -0.02em;
-            line-height: 1.2;
-            color: #1a2b3c;
-            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.08);
-            margin-bottom: 2.8rem;
+            letter-spacing: 0.02em;
+            line-height: 1.25;
+            color: #162b3c; /* 深蓝黑 */
+            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
+            margin-bottom: 3.5rem;
             word-break: break-word;
+            
+            /* 用 flex 居中 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
 
-            /* 单独入场 + 持续微浮动 */
             animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both,
-                       gentleFloat 5s ease-in-out 1.2s infinite;
+                       gentleFloat 6s ease-in-out 1.2s infinite;
         }
 
         @keyframes textEnter {
@@ -87,55 +143,33 @@
             }
         }
 
-        /* 持续的小幅度浮动，轻盈感 */
         @keyframes gentleFloat {
             0%, 100% {
                 transform: translateY(0);
             }
             50% {
-                transform: translateY(-8px);
+                transform: translateY(-6px);
             }
         }
 
-        /* 省略号装饰 */
-        .welcome-text::after {
-            content: " 后面懒得打了";
-            font-size: 0.7em;
-            opacity: 0.8;
-            display: inline-block;
-            margin-left: 0.2rem;
-            animation: sparkle 2.8s ease-in-out 1.5s infinite;
-        }
-
-        @keyframes sparkle {
-            0%, 100% {
-                opacity: 0.5;
-                transform: scale(1) rotate(0deg);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.25) rotate(8deg);
-            }
-        }
-
-        /* ---------- 按钮：入场 + 呼吸光晕 + 悬停 + 点击 ---------- */
+        /* ---------- 按钮 ---------- */
         .go-button {
             display: inline-block;
-            background: #1e3c5c;
+            background: #183e5c;
             color: white;
-            font-size: clamp(1.6rem, 5vw, 2.2rem);
+            font-size: clamp(1.6rem, 5vw, 2.4rem);
             font-weight: 700;
-            letter-spacing: 0.04em;
-            padding: 1.1rem 3.5rem;
-            border-radius: 60px;
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.06em;
+            padding: 1.1rem 3.8rem;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
             text-decoration: none;
             position: relative;
-            background-image: linear-gradient(145deg, #244a6e, #0f2a41);
-            box-shadow: 0 15px 25px -8px rgba(20, 45, 70, 0.4),
-                        0 8px 12px -4px rgba(0, 0, 0, 0.1),
-                        inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5),
+                        0 8px 12px -4px rgba(0, 0, 0, 0.15),
+                        inset 0 -3px 0 rgba(0, 0, 0, 0.15);
             transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
                         box-shadow 0.3s ease,
                         letter-spacing 0.3s ease,
@@ -143,7 +177,7 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
 
-            /* 入场 */
+            /* 入场 + 呼吸光效 */
             animation: btnEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both,
                        breathe 3.2s ease-in-out 1.4s infinite;
         }
@@ -159,39 +193,34 @@
             }
         }
 
-        /* 呼吸光晕 — 结合 box-shadow 和轻微缩放 */
         @keyframes breathe {
             0%, 100% {
-                box-shadow: 0 15px 25px -8px rgba(20, 45, 70, 0.4),
-                            0 8px 12px -4px rgba(0, 0, 0, 0.1),
-                            inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+                box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5),
+                            0 8px 12px -4px rgba(0, 0, 0, 0.15),
+                            inset 0 -3px 0 rgba(0, 0, 0, 0.15);
                 transform: scale(1);
             }
             50% {
-                box-shadow: 0 22px 36px -8px rgba(40, 90, 140, 0.55),
-                            0 10px 16px -6px rgba(0, 0, 0, 0.15),
-                            inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+                box-shadow: 0 26px 40px -8px rgba(40, 90, 140, 0.6),
+                            0 10px 16px -6px rgba(0, 0, 0, 0.2),
+                            inset 0 -3px 0 rgba(0, 0, 0, 0.12);
                 transform: scale(1.02);
             }
         }
 
-        /* 悬停时暂停呼吸（用更高的优先级覆盖），浮起 + 光感 */
+        /* 悬停 */
         .go-button:hover {
-            animation-play-state: paused, paused; /* 暂停入场（已结束）和呼吸 */
+            animation-play-state: paused, paused;
             background: #0c2338;
             background-image: linear-gradient(145deg, #1d4468, #0a1f30);
-            box-shadow: 0 28px 40px -12px rgba(10, 30, 50, 0.6),
-                        0 10px 18px -6px rgba(0, 0, 0, 0.2),
-                        inset 0 -2px 0 rgba(0, 0, 0, 0.2);
-            transform: translateY(-6px) scale(1.03);
-            letter-spacing: 0.08em;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-                        box-shadow 0.35s ease,
-                        letter-spacing 0.3s ease,
-                        background-image 0.3s ease;
+            box-shadow: 0 30px 45px -14px rgba(10, 30, 50, 0.7),
+                        0 12px 20px -6px rgba(0, 0, 0, 0.25),
+                        inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+            transform: translateY(-8px) scale(1.03);
+            letter-spacing: 0.09em;
         }
 
-        /* 按下效果: 内陷 */
+        /* 按下 */
         .go-button:active {
             transform: translateY(2px) scale(0.98);
             box-shadow: 0 8px 15px -5px rgba(0, 20, 40, 0.6),
@@ -206,12 +235,12 @@
             outline-offset: 6px;
         }
 
-        /* 为按钮增加一点动态光泽（伪元素） */
+        /* 按钮高光 */
         .go-button::before {
             content: "";
             position: absolute;
             inset: 0;
-            border-radius: 60px;
+            border-radius: 100px;
             background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 65%);
             opacity: 0;
             transition: opacity 0.35s ease;
@@ -222,86 +251,72 @@
             opacity: 1;
         }
 
-        /* ---------- 背景装饰性漂浮圆点（动效氛围） ---------- */
+        /* ---------- 背景装饰光斑 ---------- */
         .bg-orb {
             position: fixed;
             border-radius: 50%;
-            filter: blur(60px);
-            opacity: 0.25;
+            filter: blur(70px);
+            opacity: 0.2;
             z-index: 0;
             pointer-events: none;
             animation: orbDrift 18s infinite alternate ease-in-out;
         }
 
         .orb-1 {
-            width: 320px;
-            height: 320px;
-            background: #6a9fd8;
-            top: -80px;
-            left: -100px;
+            width: 340px;
+            height: 340px;
+            background: #7aa9da;
+            top: -100px;
+            left: -120px;
             animation-duration: 22s;
         }
 
         .orb-2 {
-            width: 400px;
-            height: 400px;
-            background: #a3c6e9;
+            width: 420px;
+            height: 420px;
+            background: #b2cfe8;
             bottom: -150px;
-            right: -120px;
+            right: -130px;
             animation-duration: 26s;
             animation-delay: -5s;
         }
 
         .orb-3 {
-            width: 260px;
-            height: 260px;
-            background: #c1d9f0;
+            width: 280px;
+            height: 280px;
+            background: #d0e2f2;
             top: 40%;
-            right: 5%;
+            right: 2%;
             animation-duration: 19s;
             animation-delay: -10s;
-            opacity: 0.18;
+            opacity: 0.15;
         }
 
         @keyframes orbDrift {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
-            50% {
-                transform: translate(30px, -25px) scale(1.08);
-            }
-            100% {
-                transform: translate(-20px, 20px) scale(0.96);
-            }
-        }
-
-        /* 卡片相对层级 */
-        .welcome-card {
-            position: relative;
-            z-index: 2;
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -25px) scale(1.08); }
+            100% { transform: translate(-20px, 20px) scale(0.96); }
         }
 
         /* 小屏优化 */
         @media (max-width: 480px) {
             .welcome-card {
-                padding: 3rem 1.8rem;
+                padding: 3rem 1.5rem;
                 border-radius: 2rem;
             }
-
             .welcome-text {
+                font-size: clamp(1.8rem, 10vw, 3.2rem);
                 margin-bottom: 2.2rem;
             }
-
             .go-button {
-                padding: 0.9rem 2.2rem;
+                padding: 0.9rem 2.5rem;
+                font-size: 1.5rem;
             }
         }
 
         /* 尊重减少动效偏好 */
         @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
+            *, *::before, *::after {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
@@ -310,19 +325,25 @@
     </style>
 </head>
 <body>
-    <!-- 背景漂浮光斑装饰 -->
+    <!-- 左上角超链接，在新标签页打开 -->
+    <a href="https://url13.ctfile.com/d/66483413-169022880-81591a?p=D8g7Nj1w" 
+       target="_blank" 
+       rel="noopener noreferrer" 
+       class="top-left-link">
+        沅神开播了
+    </a>
+
+    <!-- 背景光斑 -->
     <div class="bg-orb orb-1"></div>
     <div class="bg-orb orb-2"></div>
     <div class="bg-orb orb-3"></div>
 
     <div class="welcome-card">
-        <!-- 一行大字：欢迎（省略感用✨） -->
-        <div class="welcome-text">欢迎</div>
+        <!-- 将文本完全改为“欢迎后面懒得打了” -->
+        <div class="welcome-text">欢迎后面懒得打了</div>
 
-        <!-- 按钮：Let's go!!! 跳转 content.html -->
+        <!-- 按钮保持不变 -->
         <a href="content.html" class="go-button" role="button">Let's go!!!</a>
     </div>
-
-    <!-- 纯 HTML 跳转，无需额外 JS -->
 </body>
 </html>
