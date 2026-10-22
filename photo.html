@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照片 - 密码验证</title>
+    <!-- 引入 Crypto-JS 用于计算 SHA-256 哈希 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        /* ---------- 基础重置 ---------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f4f7fb;
+            padding: 1.5rem;
+            text-align: center;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰光斑 */
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
+        .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
+        .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
+        @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
+
+        /* ---------- 主卡片容器 ---------- */
+        .photo-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 3rem;
+            padding: 4.5rem 3rem;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
+                        0 6px 18px rgba(0, 0, 0, 0.05),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 2;
+            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes cardEnter {
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ---------- 大字标题 ---------- */
+        .page-title {
+            font-size: clamp(1.8rem, 6vw, 3.5rem);
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            line-height: 1.4;
+            color: #162b3c;
+            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
+            margin-bottom: 2rem;
+            word-break: break-word;
+            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+
+        @keyframes textEnter {
+            0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        /* ---------- 表单输入区 ---------- */
+        .password-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            max-width: 400px;
+            margin: 0 auto;
+            animation: fadeIn 1s ease 0.5s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.2rem;
+            border-radius: 100px;
+            border: 2px solid rgba(24, 62, 92, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+            outline: none;
+            transition: all 0.3s ease;
+            color: #162b3c;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .password-input:focus {
+            border-color: #183e5c;
+            box-shadow: 0 0 0 4px rgba(24, 62, 92, 0.15);
+        }
+
+        .submit-btn {
+            display: inline-block;
+            background: #183e5c;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 1rem 3rem;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5), 0 8px 12px -4px rgba(0, 0, 0, 0.15);
+            transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .submit-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+        }
+
+        /* 错误提示 */
+        .error-msg {
+            color: #d32f2f;
+            font-size: 0.95rem;
+            font-weight: 600;
+            min-height: 1.2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .error-msg.show { opacity: 1; }
+
+        /* ---------- 成功后的正文区 (默认隐藏) ---------- */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.8s ease both;
+        }
+
+        .content-section.active { display: block; }
+
+        .photo-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #162b3c;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .content-section .back-btn {
+            display: inline-block;
+            background: #e0e8f0;
+            color: #183e5c;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.8rem 2rem;
+            border-radius: 100px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .content-section .back-btn:hover {
+            background: #183e5c;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 加载状态提示 */
+        .status-msg {
+            font-size: 0.9rem;
+            color: #607d8b;
+            margin-top: 0.5rem;
+            min-height: 1.2rem;
+        }
+
+        /* 小屏优化 */
+        @media (max-width: 480px) {
+            .photo-card { padding: 3rem 1.5rem; border-radius: 2rem; }
+            .page-title { font-size: clamp(1.4rem, 6vw, 2rem); }
+            .password-input { padding: 0.9rem 1.2rem; font-size: 1.1rem; }
+            .submit-btn { font-size: 1.1rem; padding: 0.9rem 2rem; }
+            .photo-text { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景光斑 -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="photo-card">
+        <!-- 密码验证区域 -->
+        <div id="verify-section">
+            <div class="page-title">谁是世界上最温柔最善良的老师呀<br>（用上海话回答）</div>
+            <form class="password-form" id="password-form" onsubmit="return false;">
+                <input type="text" class="password-input" id="password-input" placeholder="请输入您的回答" autocomplete="off">
+                <div class="error-msg" id="error-msg">回答不正确哦，再想想~</div>
+                <button type="submit" class="submit-btn" id="submit-btn" disabled>验证并查看</button>
+                <div class="status-msg" id="status-msg">正在加载密码配置...</div>
+            </form>
+        </div>
+
+        <!-- 正文区域（默认隐藏） -->
+        <div class="content-section" id="content-section">
+            <div class="page-title">🎉 验证成功 🎉</div>
+            <div class="photo-text">
+                <!-- 这里可以放您想展示的正文内容 -->
+                您已经成功解锁了美妙的照片！<br>
+                在这里放上您的照片或正文吧。
+            </div>
+            <a href="content.html" class="back-btn">返回上一层</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const form = document.getElementById('password-form');
+            const input = document.getElementById('password-input');
+            const errorMsg = document.getElementById('error-msg');
+            const verifySection = document.getElementById('verify-section');
+            const contentSection = document.getElementById('content-section');
+            const submitBtn = document.getElementById('submit-btn');
+            const statusMsg = document.getElementById('status-msg');
+
+            let validHash = null;
+
+            // 异步获取同目录下的 password 文件
+            async function loadPasswordHash() {
+                try {
+                    // 添加时间戳防止浏览器或 CDN 缓存
+                    const response = await fetch('password?t=' + Date.now(), { 
+                        cache: 'no-store',
+                        headers: { 'Accept': 'text/plain' }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const text = await response.text();
+                    // 去除可能存在的 BOM 和首尾空白字符
+                    validHash = text.replace(/^\uFEFF/, '').trim();
+                    
+                    if (!validHash) {
+                        throw new Error('密码文件内容为空');
+                    }
+                    
+                    // 加载成功，启用按钮
+                    statusMsg.textContent = '';
+                    statusMsg.style.display = 'none';
+                    submitBtn.disabled = false;
+                    
+                } catch (err) {
+                    console.error("读取密码文件失败:", err);
+                    statusMsg.textContent = "无法加载密码配置，请确保文件存在于正确的目录。";
+                    statusMsg.style.color = "#d32f2f";
+                    submitBtn.disabled = true;
+                }
+            }
+
+            // 启动时加载哈希值
+            loadPasswordHash();
+
+            // 辅助函数：计算字符串的 SHA-256 哈希值
+            function sha256(str) {
+                return CryptoJS.SHA256(str).toString(CryptoJS.enc.Hex);
+            }
+
+            // 提交按钮点击或表单提交时的处理
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (validHash) {
+                    validatePassword();
+                }
+            });
+
+            function validatePassword() {
+                const answer = input.value.trim();
+                
+                if (!answer) {
+                    showError("请输入答案哦~");
+                    return;
+                }
+
+                // 计算用户输入的哈希值
+                const inputHash = sha256(answer);
+
+                // 与从文件读取的哈希值比对 (忽略大小写)
+                if (inputHash.toLowerCase() === validHash.toLowerCase()) {
+                    // 隐藏验证区，显示正文
+                    verifySection.style.display = 'none';
+                    contentSection.classList.add('active');
+                    input.value = '';
+                    errorMsg.classList.remove('show');
+                } else {
+                    showError("回答不正确哦，再想想~");
+                    input.value = '';
+                    input.focus();
+                }
+            }
+
+            function showError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.classList.add('show');
+                setTimeout(() => {
+                    errorMsg.classList.remove('show');
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
