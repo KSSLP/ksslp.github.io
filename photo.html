@@ -6,7 +6,9 @@
     <title>照片 - 密码验证</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
+        /* ---------- 基础重置 ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
             min-height: 100vh;
@@ -19,10 +21,14 @@
             text-align: center;
             overflow-x: hidden;
         }
+
+        /* 背景装饰光斑 */
         .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
         .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
         .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
         @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
+
+        /* ---------- 主卡片容器 ---------- */
         .photo-card {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(10px);
@@ -31,13 +37,21 @@
             padding: 4.5rem 3rem;
             max-width: 900px;
             width: 100%;
-            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15), 0 6px 18px rgba(0, 0, 0, 0.05), inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
+                        0 6px 18px rgba(0, 0, 0, 0.05),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.9);
             position: relative;
             z-index: 2;
             animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        @keyframes cardEnter { 0% { opacity: 0; transform: translateY(40px) scale(0.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+        @keyframes cardEnter {
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ---------- 大字标题 ---------- */
         .page-title {
             font-size: clamp(1.8rem, 6vw, 3.5rem);
             font-weight: 800;
@@ -48,51 +62,222 @@
             margin-bottom: 2rem;
             word-break: break-word;
             animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+
+        @keyframes textEnter {
+            0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        /* ---------- 表单输入区 ---------- */
+        .password-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            max-width: 400px;
+            margin: 0 auto;
+            animation: fadeIn 1s ease 0.5s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.2rem;
+            border-radius: 100px;
+            border: 2px solid rgba(24, 62, 92, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+            outline: none;
+            transition: all 0.3s ease;
+            color: #162b3c;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .password-input:focus {
+            border-color: #183e5c;
+            box-shadow: 0 0 0 4px rgba(24, 62, 92, 0.15);
+        }
+
+        .submit-btn {
+            display: inline-block;
+            background: #183e5c;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 1rem 3rem;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5), 0 8px 12px -4px rgba(0, 0, 0, 0.15);
+            transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .submit-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            opacity: 0.7;
+            box-shadow: none;
+        }
+
+        .error-msg {
+            color: #d32f2f;
+            font-size: 0.95rem;
+            font-weight: 600;
+            min-height: 1.2rem;
+            opacity: 0;
             transition: opacity 0.3s ease;
         }
-        @keyframes textEnter { 0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
-        .password-form { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 400px; margin: 0 auto; animation: fadeIn 1s ease 0.5s both; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .password-input {
-            width: 100%; padding: 1rem 1.5rem; font-size: 1.2rem; border-radius: 100px; border: 2px solid rgba(24, 62, 92, 0.2);
-            background: rgba(255, 255, 255, 0.9); outline: none; transition: all 0.3s ease; color: #162b3c; font-weight: 600; text-align: center;
-        }
-        .password-input:focus { border-color: #183e5c; box-shadow: 0 0 0 4px rgba(24, 62, 92, 0.15); }
-        .submit-btn {
-            display: inline-block; background: #183e5c; color: white; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; padding: 1rem 3rem;
-            border-radius: 100px; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
-            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5), 0 8px 12px -4px rgba(0, 0, 0, 0.15); transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .submit-btn:hover:not(:disabled) { background-image: linear-gradient(145deg, #1d4468, #0a1f30); transform: translateY(-3px) scale(1.02); }
-        .submit-btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
-        .submit-btn:disabled { background: #a0aec0; cursor: not-allowed; opacity: 0.7; box-shadow: none; }
-        .error-msg { color: #d32f2f; font-size: 0.95rem; font-weight: 600; min-height: 1.2rem; opacity: 0; transition: opacity 0.3s ease; }
+
         .error-msg.show { opacity: 1; }
-        .content-section { display: none; animation: fadeIn 0.8s ease both; width: 100%; }
+
+        /* ---------- 相册与分页区 (默认隐藏) ---------- */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.8s ease both;
+            width: 100%;
+        }
+
         .content-section.active { display: block; }
-        .gallery-container { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; max-width: 800px; margin: 0 auto 2rem; }
+
+        .gallery-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+
         .photo-item {
-            background: #fff; border-radius: 1.5rem; padding: 0.8rem;
-            box-shadow: 0 15px 30px -10px rgba(0, 20, 40, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
-            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden;
+            background: #fff;
+            border-radius: 1.5rem;
+            padding: 0.8rem;
+            box-shadow: 0 15px 30px -10px rgba(0, 20, 40, 0.15),
+                        0 0 0 1px rgba(0, 0, 0, 0.03);
+            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+            overflow: hidden;
         }
-        .photo-item img { width: 100%; height: auto; border-radius: 1rem; display: block; object-fit: cover; background: #eaf0f6; }
-        @keyframes imgFadeIn { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .photo-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 1rem;
+            display: block;
+            object-fit: cover;
+            background: #eaf0f6;
+        }
+
+        @keyframes imgFadeIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* 分页控件区 */
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e0e8f0;
+            color: #183e5c;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.6rem 1.5rem;
+            border-radius: 100px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #183e5c;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* 跳转输入框组 */
+        .page-jump {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #607d8b;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .page-jump input {
+            width: 50px;
+            padding: 0.4rem;
+            border: 2px solid rgba(24, 62, 92, 0.15);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #183e5c;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .page-jump input:focus {
+            border-color: #183e5c;
+        }
+
         .loading-status {
-            font-size: 1rem; color: #607d8b; font-weight: 600; margin: 1rem 0; padding: 1rem;
-            background: rgba(255,255,255,0.5); border-radius: 1rem;
+            font-size: 1rem;
+            color: #607d8b;
+            font-weight: 600;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255,255,255,0.5);
+            border-radius: 1rem;
         }
-        .content-section .back-btn {
-            display: inline-block; background: #e0e8f0; color: #183e5c; font-size: 1rem; font-weight: 700; padding: 0.8rem 2rem;
-            border-radius: 100px; text-decoration: none; transition: all 0.3s ease;
-        }
-        .content-section .back-btn:hover { background: #183e5c; color: white; transform: translateY(-2px); }
+
+        /* 小屏优化 */
         @media (max-width: 480px) {
             .photo-card { padding: 3rem 1.5rem; border-radius: 2rem; }
             .page-title { font-size: clamp(1.4rem, 6vw, 2rem); }
             .password-input { padding: 0.9rem 1.2rem; font-size: 1.1rem; }
             .submit-btn { font-size: 1.1rem; padding: 0.9rem 2rem; }
             .gallery-container { gap: 1rem; }
+            .pagination-controls { gap: 0.5rem; }
+            .page-btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -101,10 +286,9 @@
     <div class="bg-orb orb-2"></div>
 
     <div class="photo-card">
+        <!-- 密码验证区域 -->
         <div id="verify-section">
-            <!-- 标题现在是动态生成的 -->
             <div class="page-title" id="question-title">正在加载题目...</div>
-            
             <form class="password-form" id="password-form" onsubmit="return false;">
                 <input type="text" class="password-input" id="password-input" placeholder="请输入您的回答" autocomplete="off">
                 <div class="error-msg" id="error-msg">回答不正确哦，再想想~</div>
@@ -113,17 +297,29 @@
             </form>
         </div>
 
+        <!-- 正文/相册区域（默认隐藏） -->
         <div class="content-section" id="content-section">
             <div class="page-title">🎉 验证成功 🎉</div>
+            
+            <!-- 相册容器 -->
             <div class="gallery-container" id="gallery-container">
-                <div class="loading-status" id="loading-status">正在寻找照片，请稍候...</div>
+                <div class="loading-status" id="loading-status">正在扫描所有图片并计算页数...</div>
             </div>
-            <a href="content.html" class="back-btn">返回上一层</a>
+
+            <!-- 分页控件容器（由 JS 动态控制显示） -->
+            <div class="pagination-controls" id="pagination-controls" style="display: none;">
+                <button class="page-btn" id="prev-btn">上一页</button>
+                <div class="page-jump">
+                    第 <input type="number" id="page-input" min="1" value="1"> 页 / 共 <span id="total-pages">1</span> 页
+                </div>
+                <button class="page-btn" id="next-btn">下一页</button>
+            </div>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // DOM 元素
             const form = document.getElementById('password-form');
             const input = document.getElementById('password-input');
             const errorMsg = document.getElementById('error-msg');
@@ -131,58 +327,64 @@
             const contentSection = document.getElementById('content-section');
             const submitBtn = document.getElementById('submit-btn');
             const statusMsg = document.getElementById('status-msg');
-            const galleryContainer = document.getElementById('gallery-container');
             const questionTitle = document.getElementById('question-title');
+            
+            const galleryContainer = document.getElementById('gallery-container');
+            const paginationControls = document.getElementById('pagination-controls');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const pageInput = document.getElementById('page-input');
+            const totalPagesSpan = document.getElementById('total-pages');
 
-            let hash1 = null; // 题目1的哈希
-            let hash2 = null; // 题目2的哈希
-            let currentHashToCheck = null; // 当前需要比对的哈希
-            let currentQuestionIndex = 0; // 当前是第几题 (0 或 1)
+            // 密码相关
+            let hash1 = null;
+            let hash2 = null;
+            let currentHashToCheck = null;
+            let currentQuestionIndex = 0;
 
-            // 题目库
             const questions = [
                 "谁是世界上最温柔最善良的老师呀<br>（用上海话回答）",
                 "蛋糕大王是谁呀<br>（名字缩写）"
             ];
 
-            // 异步获取同目录下的 password 文件
-            async function init() {
+            // 相册分页相关
+            const IMAGES_PER_PAGE = 5;
+            let allImages = []; // 存放所有成功探测到的图片 URL
+            let currentPage = 1;
+            let totalPages = 1;
+
+            // ==========================================
+            // 1. 密码逻辑
+            // ==========================================
+            async function initPassword() {
                 try {
                     const response = await fetch('password?t=' + Date.now(), { cache: 'no-store' });
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     
                     const text = await response.text();
-                    // 按行分割，并过滤掉空行
                     const lines = text.split(/\r?\n/).map(line => line.replace(/^\uFEFF/, '').trim()).filter(line => line.length > 0);
                     
-                    if (lines.length < 2) {
-                        throw new Error('密码文件配置不完整，请填入两行哈希值。');
-                    }
+                    if (lines.length < 2) throw new Error('密码文件配置不完整。');
                     
                     hash1 = lines[0];
                     hash2 = lines[1];
 
-                    // 随机抽取 0 或 1
+                    // 随机抽题
                     currentQuestionIndex = Math.random() < 0.5 ? 0 : 1;
-                    
-                    // 设置题目文字和对应的哈希
                     questionTitle.innerHTML = questions[currentQuestionIndex];
                     currentHashToCheck = currentQuestionIndex === 0 ? hash1 : hash2;
 
-                    // 启用表单
                     statusMsg.style.display = 'none';
                     submitBtn.disabled = false;
-                    
                 } catch (err) {
-                    console.error("读取密码文件失败:", err);
+                    console.error("读取密码失败:", err);
                     questionTitle.textContent = "加载失败";
-                    statusMsg.textContent = "无法加载密码配置，请检查 password 文件是否包含两行有效数据。";
+                    statusMsg.textContent = "无法加载密码配置，请检查 password 文件。";
                     statusMsg.style.color = "#d32f2f";
-                    submitBtn.disabled = true;
                 }
             }
 
-            init();
+            initPassword();
 
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -193,12 +395,7 @@
                 let answer = input.value.trim();
                 if (!answer) return showError("请输入答案哦~");
 
-                // 如果当前是第二题（蛋糕大王），为了让输入更宽容，我们将输入转为小写去算哈希
-                // 这样用户输入 LZY、lzy、Lzy 都能算出同一个哈希（前提是您的 password 第二行也是小写字母算出的哈希）
-                if (currentQuestionIndex === 1) {
-                    answer = answer.toLowerCase();
-                }
-
+                if (currentQuestionIndex === 1) answer = answer.toLowerCase();
                 const inputHash = CryptoJS.SHA256(answer).toString(CryptoJS.enc.Hex);
 
                 if (inputHash.toLowerCase() === currentHashToCheck.toLowerCase()) {
@@ -206,7 +403,9 @@
                     contentSection.classList.add('active');
                     input.value = '';
                     errorMsg.classList.remove('show');
-                    loadImages();
+                    
+                    // 开始扫描图片
+                    scanImages();
                 } else {
                     showError("回答不正确哦，再想想~");
                     input.value = '';
@@ -220,76 +419,141 @@
                 setTimeout(() => { errorMsg.classList.remove('show'); }, 2000);
             }
 
-            // =========================================================
-            // 图片加载逻辑
-            // =========================================================
-            function loadImages() {
-                galleryContainer.innerHTML = '';
+            // ==========================================
+            // 2. 图片探测与分页逻辑
+            // ==========================================
+            async function scanImages() {
                 const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
-                let index = 1;
-                let foundAny = false;
+                
+                // 预探测范围：假设最多 300 张。并发探测以提高速度。
+                const MAX_SCAN = 300;
+                const promises = [];
+                
+                for (let i = 1; i <= MAX_SCAN; i++) {
+                    promises.push(probeImage(i, extensions));
+                }
 
-                function tryLoadImage() {
-                    if (index > 300) return finalizeLoading(foundAny);
+                // 等待所有探测完成
+                const results = await Promise.all(promises);
+                
+                // 过滤出成功的，并按序号排序
+                allImages = results.filter(url => url !== null).sort((a, b) => {
+                    const numA = parseInt(a.match(/\/(\d+)\./)[1]);
+                    const numB = parseInt(b.match(/\/(\d+)\./)[1]);
+                    return numA - numB;
+                });
 
+                if (allImages.length === 0) {
+                    galleryContainer.innerHTML = `<div class="loading-status">暂时没有找到照片哦。<br>请确保在根目录下有 <b>photo</b> 文件夹，<br>且图片命名为 <b>1.jpg</b>。</div>`;
+                    return;
+                }
+
+                totalPages = Math.ceil(allImages.length / IMAGES_PER_PAGE);
+                totalPagesSpan.textContent = totalPages;
+                pageInput.max = totalPages;
+                
+                if (totalPages > 1) {
+                    paginationControls.style.display = 'flex';
+                }
+
+                currentPage = 1;
+                renderPage();
+            }
+
+            // 探测单张图片，支持多种后缀
+            function probeImage(index, extensions) {
+                return new Promise((resolve) => {
                     let extIndex = 0;
-
-                    function tryNextExtension() {
-                        if (extIndex >= extensions.length) {
-                            console.log(`在 ${index}.xxx 处断号，停止加载。`);
-                            return finalizeLoading(foundAny);
-                        }
-
+                    function tryNext() {
+                        if (extIndex >= extensions.length) return resolve(null);
+                        
                         const ext = extensions[extIndex];
-                        
-                        // 使用相对路径，防缓存
                         const imgSrc = `./photo/${index}.${ext}?v=${Date.now()}`;
-                        
                         const img = new Image();
                         
-                        img.onload = () => {
-                            foundAny = true;
-                            
-                            const wrapper = document.createElement('div');
-                            wrapper.className = 'photo-item';
-                            
-                            const imgEl = document.createElement('img');
-                            imgEl.src = imgSrc;
-                            imgEl.alt = `照片 ${index}`;
-                            imgEl.loading = 'lazy';
-                            
-                            wrapper.appendChild(imgEl);
-                            galleryContainer.appendChild(wrapper);
-
-                            index++;
-                            tryLoadImage();
-                        };
-
+                        img.onload = () => resolve(imgSrc);
                         img.onerror = () => {
                             extIndex++;
-                            tryNextExtension();
+                            tryNext();
                         };
-
                         img.src = imgSrc;
                     }
-
-                    tryNextExtension();
-                }
-
-                tryLoadImage();
-
-                function finalizeLoading(hasImages) {
-                    const loadingEl = document.getElementById('loading-status');
-                    if (loadingEl) loadingEl.remove();
-                    
-                    if (!hasImages) {
-                        const emptyMsg = document.createElement('div');
-                        emptyMsg.className = 'loading-status';
-                        emptyMsg.innerHTML = `暂时没有找到照片哦。<br>请确保在仓库根目录下有 <b>photo</b> 文件夹，<br>且图片命名为 <b>1.jpg</b>。`;
-                        galleryContainer.appendChild(emptyMsg);
-                    }
-                }
+                    tryNext();
+                });
             }
+
+            // 渲染当前页
+            function renderPage() {
+                galleryContainer.innerHTML = '';
+                
+                const startIndex = (currentPage - 1) * IMAGES_PER_PAGE;
+                const endIndex = Math.min(startIndex + IMAGES_PER_PAGE, allImages.length);
+                const pageImages = allImages.slice(startIndex, endIndex);
+
+                pageImages.forEach((src, idx) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'photo-item';
+                    wrapper.style.animationDelay = `${idx * 0.1}s`; // 逐张弹出的动画
+                    
+                    const imgEl = document.createElement('img');
+                    imgEl.src = src;
+                    imgEl.alt = `照片`;
+                    imgEl.loading = 'lazy';
+                    
+                    wrapper.appendChild(imgEl);
+                    galleryContainer.appendChild(wrapper);
+                });
+
+                updatePaginationUI();
+            }
+
+            // 更新分页控件状态
+            function updatePaginationUI() {
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = currentPage === totalPages;
+                pageInput.value = currentPage;
+            }
+
+            // 上一页
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPage();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
+            // 下一页
+            nextBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderPage();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
+            // 页数跳转
+            pageInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (isNaN(val) || val < 1) val = 1;
+                if (val > totalPages) val = totalPages;
+                
+                if (val !== currentPage) {
+                    currentPage = val;
+                    renderPage();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    e.target.value = currentPage; // 恢复合法值
+                }
+            });
+
+            // 防止输入回车时表单提交或页面刷新
+            pageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    pageInput.blur();
+                }
+            });
         });
     </script>
 </body>
