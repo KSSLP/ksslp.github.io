@@ -6,11 +6,7 @@
     <title>XCJ - 包头中学2027届3班</title>
     <style>
         /* ---------- 基础重置 ---------- */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -40,20 +36,12 @@
             border: 1px solid rgba(255, 255, 255, 0.9);
             position: relative;
             z-index: 2;
-
-            /* 入场动画 */
             animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         @keyframes cardEnter {
-            0% {
-                opacity: 0;
-                transform: translateY(40px) scale(0.96);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         /* ---------- 大字标题 ---------- */
@@ -70,23 +58,13 @@
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
-
-            /* 单独入场 + 持续微浮动 */
             animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both,
                        gentleFloat 6s ease-in-out 1.2s infinite;
         }
 
         @keyframes textEnter {
-            0% {
-                opacity: 0;
-                transform: translateY(24px) scale(0.94);
-                filter: blur(6px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-                filter: blur(0);
-            }
+            0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
         }
 
         @keyframes gentleFloat {
@@ -105,10 +83,7 @@
             animation: fadeIn 1s ease 0.5s both;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 0.8; }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 0.8; } }
 
         /* ---------- 选项列表容器 ---------- */
         .song-list {
@@ -120,24 +95,6 @@
             width: 100%;
             max-width: 600px;
             margin: 0 auto;
-            
-            /* 如果未来选项很多，可以解除下面的注释来限制高度并滚动 */
-            /* max-height: 50vh; */
-            /* overflow-y: auto; */
-            /* padding-right: 10px; */
-        }
-
-        /* 自定义滚动条 (当选项多时更美观) */
-        .song-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        .song-list::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-        }
-        .song-list::-webkit-scrollbar-thumb {
-            background: rgba(24, 62, 92, 0.3);
-            border-radius: 10px;
         }
 
         /* ---------- 选项按钮通用样式 ---------- */
@@ -163,36 +120,21 @@
                         0 8px 12px -4px rgba(0, 0, 0, 0.15),
                         inset 0 -3px 0 rgba(0, 0, 0, 0.15);
             transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-                        box-shadow 0.3s ease,
-                        letter-spacing 0.3s ease,
-                        background-image 0.3s ease;
+                        box-shadow 0.3s ease, letter-spacing 0.3s ease, background-image 0.3s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             overflow: hidden;
-
-            /* 入场动画 */
             animation: btnEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
-        /* 为后续添加的按钮设定不同延迟 */
         .song-btn:nth-child(1) { animation-delay: 0.3s; }
         .song-btn:nth-child(2) { animation-delay: 0.4s; }
-        .song-btn:nth-child(3) { animation-delay: 0.5s; }
-        .song-btn:nth-child(4) { animation-delay: 0.6s; }
-        .song-btn:nth-child(5) { animation-delay: 0.7s; }
 
         @keyframes btnEnter {
-            0% {
-                opacity: 0;
-                transform: translateY(28px) scale(0.9);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            0% { opacity: 0; transform: translateY(28px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* 悬停 */
         .song-btn:hover {
             background: #0c2338;
             background-image: linear-gradient(145deg, #1d4468, #0a1f30);
@@ -203,147 +145,55 @@
             letter-spacing: 0.09em;
         }
 
-        /* 按下 */
         .song-btn:active {
             transform: translateY(2px) scale(0.98);
-            box-shadow: 0 8px 15px -5px rgba(0, 20, 40, 0.6),
-                        inset 0 6px 12px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 8px 15px -5px rgba(0, 20, 40, 0.6), inset 0 6px 12px rgba(0, 0, 0, 0.35);
             background-image: linear-gradient(145deg, #122b40, #071a28);
             transition: transform 0.06s, box-shadow 0.06s, background-image 0.06s;
         }
 
-        /* 焦点可见 */
-        .song-btn:focus-visible {
-            outline: 4px solid #96c0e6;
-            outline-offset: 6px;
-        }
-
-        /* 按钮高光 */
         .song-btn::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: 100px;
+            content: ""; position: absolute; inset: 0; border-radius: 100px;
             background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 65%);
-            opacity: 0;
-            transition: opacity 0.35s ease;
-            pointer-events: none;
+            opacity: 0; transition: opacity 0.35s ease; pointer-events: none;
         }
 
-        .song-btn:hover::before {
-            opacity: 1;
-        }
+        .song-btn:hover::before { opacity: 1; }
 
-        /* 按钮右侧的小装饰 */
         .song-btn::after {
-            content: "🎵";
-            font-size: 1.2em;
-            opacity: 0.8;
-            margin-left: 15px;
-            transform: translateY(-1px);
-            display: inline-block;
-            transition: transform 0.3s ease;
+            content: "🎵"; font-size: 1.2em; opacity: 0.8; margin-left: 15px;
+            transform: translateY(-1px); display: inline-block; transition: transform 0.3s ease;
         }
 
-        .song-btn:hover::after {
-            transform: translateY(-1px) scale(1.2) rotate(10deg);
-            opacity: 1;
-        }
+        .song-btn:hover::after { transform: translateY(-1px) scale(1.2) rotate(10deg); opacity: 1; }
 
-        /* ---------- 背景装饰光斑 ---------- */
-        .bg-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(70px);
-            opacity: 0.2;
-            z-index: 0;
-            pointer-events: none;
-            animation: orbDrift 18s infinite alternate ease-in-out;
-        }
+        /* 背景装饰光斑 */
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
+        .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
+        .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
+        .orb-3 { width: 280px; height: 280px; background: #d0e2f2; top: 40%; right: 2%; animation-duration: 19s; animation-delay: -10s; opacity: 0.15; }
+        @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
 
-        .orb-1 {
-            width: 340px;
-            height: 340px;
-            background: #7aa9da;
-            top: -100px;
-            left: -120px;
-            animation-duration: 22s;
-        }
-
-        .orb-2 {
-            width: 420px;
-            height: 420px;
-            background: #b2cfe8;
-            bottom: -150px;
-            right: -130px;
-            animation-duration: 26s;
-            animation-delay: -5s;
-        }
-
-        .orb-3 {
-            width: 280px;
-            height: 280px;
-            background: #d0e2f2;
-            top: 40%;
-            right: 2%;
-            animation-duration: 19s;
-            animation-delay: -10s;
-            opacity: 0.15;
-        }
-
-        @keyframes orbDrift {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(30px, -25px) scale(1.08); }
-            100% { transform: translate(-20px, 20px) scale(0.96); }
-        }
-
-        /* 小屏优化 */
         @media (max-width: 480px) {
-            .xcj-card {
-                padding: 3rem 1.5rem;
-                border-radius: 2rem;
-            }
-            .page-title {
-                font-size: clamp(2rem, 10vw, 3.5rem);
-            }
-            .song-btn {
-                padding: 0.9rem 1.8rem;
-                font-size: 1.1rem;
-            }
-            .song-list {
-                gap: 1rem;
-            }
-        }
-
-        /* 尊重减少动效偏好 */
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
+            .xcj-card { padding: 3rem 1.5rem; border-radius: 2rem; }
+            .page-title { font-size: clamp(2rem, 10vw, 3.5rem); }
+            .song-btn { padding: 0.9rem 1.8rem; font-size: 1.1rem; }
+            .song-list { gap: 1rem; }
         }
     </style>
 </head>
 <body>
-    <!-- 背景光斑 -->
     <div class="bg-orb orb-1"></div>
     <div class="bg-orb orb-2"></div>
     <div class="bg-orb orb-3"></div>
 
     <div class="xcj-card">
-        <!-- 大字标题 -->
         <div class="page-title">XCJ</div>
         <div class="sub-title">— 歌曲列表 —</div>
 
-        <!-- 歌曲列表容器 -->
         <div class="song-list">
-            <!-- 链接已更新为同目录下的 m4a 音频文件 -->
-            <a href="小承接唱countingstars.m4a" class="song-btn" role="button">Counting stars</a>
-            
-            <!-- 未来新增选项示例：
-            <a href="另一首歌.m4a" class="song-btn" role="button">另一首歌</a>
-            -->
+            <!-- 注意这里跳转到了新页面 (文件名包含空格) -->
+            <a href="xcj-counting stars.html" class="song-btn" role="button">Counting stars</a>
         </div>
     </div>
 </body>
