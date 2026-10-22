@@ -200,6 +200,9 @@
             color: #607d8b;
             font-weight: 600;
             margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255,255,255,0.5);
+            border-radius: 1rem;
         }
 
         .content-section .back-btn {
@@ -218,14 +221,6 @@
             background: #183e5c;
             color: white;
             transform: translateY(-2px);
-        }
-
-        /* 加载状态提示 */
-        .status-msg {
-            font-size: 0.9rem;
-            color: #607d8b;
-            margin-top: 0.5rem;
-            min-height: 1.2rem;
         }
 
         /* 小屏优化 */
@@ -261,7 +256,7 @@
             
             <!-- 相册容器 -->
             <div class="gallery-container" id="gallery-container">
-                <div class="loading-status" id="loading-status">正在加载图片...</div>
+                <div class="loading-status" id="loading-status">正在寻找照片，请稍候...</div>
             </div>
 
             <a href="content.html" class="back-btn">返回上一层</a>
@@ -314,12 +309,10 @@
 
             loadPasswordHash();
 
-            // 辅助函数：计算字符串的 SHA-256 哈希值
             function sha256(str) {
                 return CryptoJS.SHA256(str).toString(CryptoJS.enc.Hex);
             }
 
-            // 提交按钮点击或表单提交时的处理
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 if (validHash) {
@@ -338,13 +331,11 @@
                 const inputHash = sha256(answer);
 
                 if (inputHash.toLowerCase() === validHash.toLowerCase()) {
-                    // 密码正确，切换到相册
                     verifySection.style.display = 'none';
                     contentSection.classList.add('active');
                     input.value = '';
                     errorMsg.classList.remove('show');
                     
-                    // 开始加载图片
                     loadImages();
                 } else {
                     showError("回答不正确哦，再想想~");
@@ -362,21 +353,18 @@
             }
 
             // =========================================================
-            // 自动加载图片逻辑（按 1.jpg, 2.jpg... 递增直到加载失败）
+            // 自动加载图片逻辑
             // =========================================================
             function loadImages() {
-                // 清理加载提示
                 galleryContainer.innerHTML = '';
                 
-                // 支持的图片后缀，按优先级尝试
-                const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                // 支持超多格式，并且包含大写，防止大小写导致失败
+                const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP', 'gif', 'GIF'];
                 let index = 1;
                 let foundAny = false;
 
-                // 定义尝试加载函数
                 function tryLoadImage() {
-                    if (index > 200) { 
-                        // 防止无限循环
+                    if (index > 300) { 
                         finalizeLoading(foundAny);
                         return; 
                     }
@@ -385,23 +373,25 @@
 
                     function tryNextExtension() {
                         if (extIndex >= extensions.length) {
-                            // 当前序号的所有后缀都失败了，结束加载
+                            // 尝试了所有格式都不行，说明断号了
+                            console.log(`在 ${index}.xxx 处断号，停止加载。`);
                             finalizeLoading(foundAny);
                             return;
                         }
 
                         const ext = extensions[extIndex];
-                        // 注意：路径是 photo/1.jpg 格式。请确保您的图片放在 photo 目录下。
-                        const imgSrc = `photo/${index}.${ext}`;
+                        
+                        // 绝对路径：假设 photo 文件夹在仓库根目录。
+                        // 如果您的 photo 文件夹不在根目录，请修改这里的路径。
+                        const imgSrc = `/photo/${index}.${ext}`;
                         const img = new Image();
                         
                         img.onload = () => {
-                            // 加载成功
                             foundAny = true;
+                            console.log(`成功加载图片: ${imgSrc}`);
                             
                             const wrapper = document.createElement('div');
                             wrapper.className = 'photo-item';
-                            wrapper.style.animationDelay = `${(index % 5) * 0.05}s`;
                             
                             const imgEl = document.createElement('img');
                             imgEl.src = imgSrc;
@@ -411,13 +401,12 @@
                             wrapper.appendChild(imgEl);
                             galleryContainer.appendChild(wrapper);
 
-                            // 尝试加载下一张
                             index++;
                             tryLoadImage();
                         };
 
                         img.onerror = () => {
-                            // 当前后缀失败，尝试下一个后缀
+                            // 失败则换下一个后缀
                             extIndex++;
                             tryNextExtension();
                         };
@@ -425,24 +414,19 @@
                         img.src = imgSrc;
                     }
 
-                    // 开始尝试第一个后缀
                     tryNextExtension();
                 }
 
-                // 启动加载
                 tryLoadImage();
 
-                // 加载结束处理
                 function finalizeLoading(hasImages) {
-                    // 移除加载提示（如果有的话）
                     const loadingEl = document.getElementById('loading-status');
                     if (loadingEl) loadingEl.remove();
                     
                     if (!hasImages) {
-                        // 如果一张图都没找到，显示提示
                         const emptyMsg = document.createElement('div');
                         emptyMsg.className = 'loading-status';
-                        emptyMsg.textContent = '暂时没有照片哦，请先上传图片到 photo 目录下。';
+                        emptyMsg.innerHTML = `暂时没有找到照片哦。<br>请确保在仓库根目录下创建了 <b>photo</b> 文件夹，<br>并上传了命名为 <b>1.jpg</b> 的图片。`;
                         galleryContainer.appendChild(emptyMsg);
                     }
                 }
