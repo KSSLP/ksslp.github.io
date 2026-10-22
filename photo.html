@@ -153,16 +153,53 @@
         .content-section {
             display: none;
             animation: fadeIn 0.8s ease both;
+            width: 100%;
         }
 
         .content-section.active { display: block; }
 
-        .photo-text {
-            font-size: 1.5rem;
+        /* 相册容器 */
+        .gallery-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+
+        /* 单张图片卡片 */
+        .photo-item {
+            background: #fff;
+            border-radius: 1.5rem;
+            padding: 0.8rem;
+            box-shadow: 0 15px 30px -10px rgba(0, 20, 40, 0.15),
+                        0 0 0 1px rgba(0, 0, 0, 0.03);
+            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+            overflow: hidden;
+        }
+
+        /* 图片本身 */
+        .photo-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 1rem;
+            display: block;
+            object-fit: cover;
+            background: #eaf0f6;
+        }
+
+        @keyframes imgFadeIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* 加载/错误状态提示 */
+        .loading-status {
+            font-size: 1rem;
+            color: #607d8b;
             font-weight: 600;
-            color: #162b3c;
-            line-height: 1.8;
-            margin-bottom: 2rem;
+            margin: 1rem 0;
         }
 
         .content-section .back-btn {
@@ -197,7 +234,7 @@
             .page-title { font-size: clamp(1.4rem, 6vw, 2rem); }
             .password-input { padding: 0.9rem 1.2rem; font-size: 1.1rem; }
             .submit-btn { font-size: 1.1rem; padding: 0.9rem 2rem; }
-            .photo-text { font-size: 1.2rem; }
+            .gallery-container { gap: 1rem; }
         }
     </style>
 </head>
@@ -218,14 +255,15 @@
             </form>
         </div>
 
-        <!-- 正文区域（默认隐藏） -->
+        <!-- 正文/相册区域（默认隐藏） -->
         <div class="content-section" id="content-section">
             <div class="page-title">🎉 验证成功 🎉</div>
-            <div class="photo-text">
-                <!-- 这里可以放您想展示的正文内容 -->
-                您已经成功解锁了美妙的照片！<br>
-                在这里放上您的照片或正文吧。
+            
+            <!-- 相册容器 -->
+            <div class="gallery-container" id="gallery-container">
+                <div class="loading-status" id="loading-status">正在加载图片...</div>
             </div>
+
             <a href="content.html" class="back-btn">返回上一层</a>
         </div>
     </div>
@@ -239,13 +277,13 @@
             const contentSection = document.getElementById('content-section');
             const submitBtn = document.getElementById('submit-btn');
             const statusMsg = document.getElementById('status-msg');
+            const galleryContainer = document.getElementById('gallery-container');
 
             let validHash = null;
 
             // 异步获取同目录下的 password 文件
             async function loadPasswordHash() {
                 try {
-                    // 添加时间戳防止浏览器或 CDN 缓存
                     const response = await fetch('password?t=' + Date.now(), { 
                         cache: 'no-store',
                         headers: { 'Accept': 'text/plain' }
@@ -256,27 +294,24 @@
                     }
                     
                     const text = await response.text();
-                    // 去除可能存在的 BOM 和首尾空白字符
                     validHash = text.replace(/^\uFEFF/, '').trim();
                     
                     if (!validHash) {
                         throw new Error('密码文件内容为空');
                     }
                     
-                    // 加载成功，启用按钮
                     statusMsg.textContent = '';
                     statusMsg.style.display = 'none';
                     submitBtn.disabled = false;
                     
                 } catch (err) {
                     console.error("读取密码文件失败:", err);
-                    statusMsg.textContent = "无法加载密码配置，请确保文件存在于正确的目录。";
+                    statusMsg.textContent = "无法加载密码配置，请确保文件存在。";
                     statusMsg.style.color = "#d32f2f";
                     submitBtn.disabled = true;
                 }
             }
 
-            // 启动时加载哈希值
             loadPasswordHash();
 
             // 辅助函数：计算字符串的 SHA-256 哈希值
@@ -300,16 +335,17 @@
                     return;
                 }
 
-                // 计算用户输入的哈希值
                 const inputHash = sha256(answer);
 
-                // 与从文件读取的哈希值比对 (忽略大小写)
                 if (inputHash.toLowerCase() === validHash.toLowerCase()) {
-                    // 隐藏验证区，显示正文
+                    // 密码正确，切换到相册
                     verifySection.style.display = 'none';
                     contentSection.classList.add('active');
                     input.value = '';
                     errorMsg.classList.remove('show');
+                    
+                    // 开始加载图片
+                    loadImages();
                 } else {
                     showError("回答不正确哦，再想想~");
                     input.value = '';
@@ -323,6 +359,93 @@
                 setTimeout(() => {
                     errorMsg.classList.remove('show');
                 }, 2000);
+            }
+
+            // =========================================================
+            // 自动加载图片逻辑（按 1.jpg, 2.jpg... 递增直到加载失败）
+            // =========================================================
+            function loadImages() {
+                // 清理加载提示
+                galleryContainer.innerHTML = '';
+                
+                // 支持的图片后缀，按优先级尝试
+                const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                let index = 1;
+                let foundAny = false;
+
+                // 定义尝试加载函数
+                function tryLoadImage() {
+                    if (index > 200) { 
+                        // 防止无限循环
+                        finalizeLoading(foundAny);
+                        return; 
+                    }
+
+                    let extIndex = 0;
+
+                    function tryNextExtension() {
+                        if (extIndex >= extensions.length) {
+                            // 当前序号的所有后缀都失败了，结束加载
+                            finalizeLoading(foundAny);
+                            return;
+                        }
+
+                        const ext = extensions[extIndex];
+                        // 注意：路径是 photo/1.jpg 格式。请确保您的图片放在 photo 目录下。
+                        const imgSrc = `photo/${index}.${ext}`;
+                        const img = new Image();
+                        
+                        img.onload = () => {
+                            // 加载成功
+                            foundAny = true;
+                            
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'photo-item';
+                            wrapper.style.animationDelay = `${(index % 5) * 0.05}s`;
+                            
+                            const imgEl = document.createElement('img');
+                            imgEl.src = imgSrc;
+                            imgEl.alt = `照片 ${index}`;
+                            imgEl.loading = 'lazy';
+                            
+                            wrapper.appendChild(imgEl);
+                            galleryContainer.appendChild(wrapper);
+
+                            // 尝试加载下一张
+                            index++;
+                            tryLoadImage();
+                        };
+
+                        img.onerror = () => {
+                            // 当前后缀失败，尝试下一个后缀
+                            extIndex++;
+                            tryNextExtension();
+                        };
+
+                        img.src = imgSrc;
+                    }
+
+                    // 开始尝试第一个后缀
+                    tryNextExtension();
+                }
+
+                // 启动加载
+                tryLoadImage();
+
+                // 加载结束处理
+                function finalizeLoading(hasImages) {
+                    // 移除加载提示（如果有的话）
+                    const loadingEl = document.getElementById('loading-status');
+                    if (loadingEl) loadingEl.remove();
+                    
+                    if (!hasImages) {
+                        // 如果一张图都没找到，显示提示
+                        const emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'loading-status';
+                        emptyMsg.textContent = '暂时没有照片哦，请先上传图片到 photo 目录下。';
+                        galleryContainer.appendChild(emptyMsg);
+                    }
+                }
             }
         });
     </script>
