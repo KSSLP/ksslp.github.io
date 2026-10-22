@@ -76,7 +76,7 @@
             background: #fff; border-radius: 1.5rem; padding: 0.8rem;
             box-shadow: 0 15px 30px -10px rgba(0, 20, 40, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
             animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden;
-            min-height: 200px; /* 占位，防抖动 */
+            min-height: 200px;
         }
         .photo-item img { width: 100%; height: auto; border-radius: 1rem; display: block; object-fit: cover; background: #eaf0f6; }
         @keyframes imgFadeIn { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
@@ -174,7 +174,7 @@
 
             // 相册分页相关
             const IMAGES_PER_PAGE = 5;
-            let totalImagesCount = 0; // 总图片数
+            let totalImagesCount = 0; 
             let currentPage = 1;
             let totalPages = 1;
             let isScanningDone = false;
@@ -229,6 +229,9 @@
                     input.value = '';
                     errorMsg.classList.remove('show');
                     
+                    // 修改标题
+                    document.title = "美妙照片";
+                    
                     // 密码正确，秒开第一页！
                     currentPage = 1;
                     renderPage(); 
@@ -248,17 +251,15 @@
             }
 
             // ==========================================
-            // 2. 图片渲染逻辑 (真正按需加载)
+            // 2. 图片渲染逻辑 (按需加载)
             // ==========================================
             function renderPage() {
                 galleryContainer.innerHTML = '';
                 const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
                 
-                // 直接计算当前页需要展示的图片序号：例如第2页，就是 6, 7, 8, 9, 10
                 const startIndex = (currentPage - 1) * IMAGES_PER_PAGE + 1;
                 const endIndex = startIndex + IMAGES_PER_PAGE - 1;
 
-                // 只需要下载这 5 张图，不用管其他的
                 for (let i = startIndex; i <= endIndex; i++) {
                     createImageItem(i, extensions);
                 }
@@ -278,21 +279,18 @@
                 wrapper.appendChild(imgEl);
                 galleryContainer.appendChild(wrapper);
 
-                // 尝试加载这个序号的图片
                 for (let ext of extensions) {
                     const imgSrc = `./photo/${index}.${ext}`;
                     const success = await probeImage(imgSrc);
                     if (success) {
                         imgEl.src = imgSrc;
-                        return; // 找到了就结束当前图片的探测
+                        return;
                     }
                 }
                 
-                // 如果所有后缀都没找到，移除占位，或者显示一个提示
                 wrapper.style.display = 'none';
             }
 
-            // 测试单个图片链接是否有效 (只尝试请求，不塞进DOM)
             function probeImage(url) {
                 return new Promise((resolve) => {
                     const img = new Image();
@@ -303,20 +301,15 @@
             }
 
             // ==========================================
-            // 3. 后台静默推算总页数 (不影响用户看图)
+            // 3. 后台静默推算总页数
             // ==========================================
             async function backgroundScanTotalCount() {
                 const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
                 let consecutiveMisses = 0;
                 let index = 1;
-                const MAX_SCAN = 100; // 安全上限
+                const MAX_SCAN = 100; 
 
                 while (index <= MAX_SCAN) {
-                    const startTime = Date.now();
-                    
-                    // 不再下载整张图片，改用 HEAD 请求（只查是否存在，不传图片内容，极快）
-                    // 如果 GitHub Pages 不支持 HEAD，或者想稳一点，也可以用 fetch(url, {method: 'HEAD'})
-                    // 这里为了兼容性，我们用普通的 Image 但配合 Promise 快速探测
                     let found = false;
                     for (let ext of extensions) {
                         const url = `./photo/${index}.${ext}`;
@@ -328,14 +321,13 @@
 
                     if (found) {
                         consecutiveMisses = 0;
-                        totalImagesCount = index; // 记录已知的最后一个序号
+                        totalImagesCount = index; 
                     } else {
                         consecutiveMisses++;
-                        if (consecutiveMisses >= 3) break; // 连续3个没有，认为结束了
+                        if (consecutiveMisses >= 3) break; 
                     }
                     index++;
                     
-                    // 稍微延迟一下，避免瞬间请求过多卡住主线程
                     await new Promise(r => setTimeout(r, 50)); 
                 }
 
@@ -356,7 +348,6 @@
             // ==========================================
             function updatePaginationUI() {
                 prevBtn.disabled = currentPage === 1;
-                // 如果还在扫描，下一页始终可用；如果扫描完了，根据总数禁用
                 nextBtn.disabled = isScanningDone ? (currentPage >= totalPages) : false;
                 pageInput.value = currentPage;
             }
@@ -370,7 +361,6 @@
             });
 
             nextBtn.addEventListener('click', () => {
-                // 即使还在后台扫描，也允许一直往下翻，直到翻出空页
                 currentPage++;
                 renderPage();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
