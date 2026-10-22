@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LZY - 包头中学2027届3班</title>
+    <style>
+        /* ---------- 基础重置 ---------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f4f7fb;
+            padding: 1.5rem;
+            text-align: center;
+            overflow-x: hidden;
+        }
+
+        /* ---------- 主卡片容器 ---------- */
+        .lzy-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 3rem;
+            padding: 4.5rem 3rem;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
+                        0 6px 18px rgba(0, 0, 0, 0.05),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 2;
+            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes cardEnter {
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ---------- 大字标题 ---------- */
+        .page-title {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            line-height: 1.25;
+            color: #162b3c;
+            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
+            margin-bottom: 1.5rem;
+            word-break: break-word;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both,
+                       gentleFloat 6s ease-in-out 1.2s infinite;
+        }
+
+        @keyframes textEnter {
+            0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); }
+            100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* 副标题或装饰 */
+        .sub-title {
+            font-size: 1rem;
+            color: #607d8b;
+            margin-bottom: 3rem;
+            letter-spacing: 0.1em;
+            font-weight: 500;
+            opacity: 0.8;
+            animation: fadeIn 1s ease 0.5s both;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 0.8; } }
+
+        /* ---------- 选项列表容器 ---------- */
+        .song-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ---------- 选项按钮通用样式 ---------- */
+        .song-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 480px;
+            background: #183e5c;
+            color: white;
+            font-size: clamp(1.2rem, 4vw, 1.6rem);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 1.1rem 2.5rem;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5),
+                        0 8px 12px -4px rgba(0, 0, 0, 0.15),
+                        inset 0 -3px 0 rgba(0, 0, 0, 0.15);
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        box-shadow 0.3s ease, letter-spacing 0.3s ease, background-image 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            animation: btnEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .song-btn:nth-child(1) { animation-delay: 0.3s; }
+        .song-btn:nth-child(2) { animation-delay: 0.4s; }
+
+        @keyframes btnEnter {
+            0% { opacity: 0; transform: translateY(28px) scale(0.9); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .song-btn:hover {
+            background: #0c2338;
+            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
+            box-shadow: 0 30px 45px -14px rgba(10, 30, 50, 0.7),
+                        0 12px 20px -6px rgba(0, 0, 0, 0.25),
+                        inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+            transform: translateY(-6px) scale(1.02);
+            letter-spacing: 0.09em;
+        }
+
+        .song-btn:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 8px 15px -5px rgba(0, 20, 40, 0.6), inset 0 6px 12px rgba(0, 0, 0, 0.35);
+            background-image: linear-gradient(145deg, #122b40, #071a28);
+            transition: transform 0.06s, box-shadow 0.06s, background-image 0.06s;
+        }
+
+        .song-btn::before {
+            content: ""; position: absolute; inset: 0; border-radius: 100px;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 65%);
+            opacity: 0; transition: opacity 0.35s ease; pointer-events: none;
+        }
+
+        .song-btn:hover::before { opacity: 1; }
+
+        .song-btn::after {
+            content: "🎵"; font-size: 1.2em; opacity: 0.8; margin-left: 15px;
+            transform: translateY(-1px); display: inline-block; transition: transform 0.3s ease;
+        }
+
+        .song-btn:hover::after { transform: translateY(-1px) scale(1.2) rotate(10deg); opacity: 1; }
+
+        /* 背景装饰光斑 */
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
+        .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
+        .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
+        .orb-3 { width: 280px; height: 280px; background: #d0e2f2; top: 40%; right: 2%; animation-duration: 19s; animation-delay: -10s; opacity: 0.15; }
+        @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
+
+        @media (max-width: 480px) {
+            .lzy-card { padding: 3rem 1.5rem; border-radius: 2rem; }
+            .page-title { font-size: clamp(2rem, 10vw, 3.5rem); }
+            .song-btn { padding: 0.9rem 1.8rem; font-size: 1.1rem; }
+            .song-list { gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div class="lzy-card">
+        <div class="page-title">LZY</div>
+        <div class="sub-title">— 歌曲列表 —</div>
+
+        <div class="song-list">
+            <a href="lzy-jybd.html" class="song-btn" role="button">甲乙丙丁</a>
+        </div>
+    </div>
+</body>
+</html>
