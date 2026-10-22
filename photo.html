@@ -48,6 +48,7 @@
             margin-bottom: 2rem;
             word-break: break-word;
             animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+            transition: opacity 0.3s ease;
         }
         @keyframes textEnter { 0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
         .password-form { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 400px; margin: 0 auto; animation: fadeIn 1s ease 0.5s both; }
@@ -101,7 +102,9 @@
 
     <div class="photo-card">
         <div id="verify-section">
-            <div class="page-title">谁是世界上最温柔最善良的老师呀<br>（用上海话回答）</div>
+            <!-- 标题现在是动态生成的 -->
+            <div class="page-title" id="question-title">正在加载题目...</div>
+            
             <form class="password-form" id="password-form" onsubmit="return false;">
                 <input type="text" class="password-input" id="password-input" placeholder="请输入您的回答" autocomplete="off">
                 <div class="error-msg" id="error-msg">回答不正确哦，再想想~</div>
@@ -129,42 +132,76 @@
             const submitBtn = document.getElementById('submit-btn');
             const statusMsg = document.getElementById('status-msg');
             const galleryContainer = document.getElementById('gallery-container');
+            const questionTitle = document.getElementById('question-title');
 
-            let validHash = null;
+            let hash1 = null; // 题目1的哈希
+            let hash2 = null; // 题目2的哈希
+            let currentHashToCheck = null; // 当前需要比对的哈希
+            let currentQuestionIndex = 0; // 当前是第几题 (0 或 1)
 
-            async function loadPasswordHash() {
+            // 题目库
+            const questions = [
+                "谁是世界上最温柔最善良的老师呀<br>（用上海话回答）",
+                "蛋糕大王是谁呀<br>（名字缩写）"
+            ];
+
+            // 异步获取同目录下的 password 文件
+            async function init() {
                 try {
-                    // 相对路径获取 password
                     const response = await fetch('password?t=' + Date.now(), { cache: 'no-store' });
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     
                     const text = await response.text();
-                    validHash = text.replace(/^\uFEFF/, '').trim();
-                    if (!validHash) throw new Error('密码文件内容为空');
+                    // 按行分割，并过滤掉空行
+                    const lines = text.split(/\r?\n/).map(line => line.replace(/^\uFEFF/, '').trim()).filter(line => line.length > 0);
                     
+                    if (lines.length < 2) {
+                        throw new Error('密码文件配置不完整，请填入两行哈希值。');
+                    }
+                    
+                    hash1 = lines[0];
+                    hash2 = lines[1];
+
+                    // 随机抽取 0 或 1
+                    currentQuestionIndex = Math.random() < 0.5 ? 0 : 1;
+                    
+                    // 设置题目文字和对应的哈希
+                    questionTitle.innerHTML = questions[currentQuestionIndex];
+                    currentHashToCheck = currentQuestionIndex === 0 ? hash1 : hash2;
+
+                    // 启用表单
                     statusMsg.style.display = 'none';
                     submitBtn.disabled = false;
+                    
                 } catch (err) {
                     console.error("读取密码文件失败:", err);
-                    statusMsg.textContent = "无法加载密码配置，请确保文件存在。";
+                    questionTitle.textContent = "加载失败";
+                    statusMsg.textContent = "无法加载密码配置，请检查 password 文件是否包含两行有效数据。";
                     statusMsg.style.color = "#d32f2f";
                     submitBtn.disabled = true;
                 }
             }
 
-            loadPasswordHash();
+            init();
 
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                if (validHash) validatePassword();
+                if (currentHashToCheck) validatePassword();
             });
 
             function validatePassword() {
-                const answer = input.value.trim();
+                let answer = input.value.trim();
                 if (!answer) return showError("请输入答案哦~");
 
+                // 如果当前是第二题（蛋糕大王），为了让输入更宽容，我们将输入转为小写去算哈希
+                // 这样用户输入 LZY、lzy、Lzy 都能算出同一个哈希（前提是您的 password 第二行也是小写字母算出的哈希）
+                if (currentQuestionIndex === 1) {
+                    answer = answer.toLowerCase();
+                }
+
                 const inputHash = CryptoJS.SHA256(answer).toString(CryptoJS.enc.Hex);
-                if (inputHash.toLowerCase() === validHash.toLowerCase()) {
+
+                if (inputHash.toLowerCase() === currentHashToCheck.toLowerCase()) {
                     verifySection.style.display = 'none';
                     contentSection.classList.add('active');
                     input.value = '';
@@ -184,7 +221,7 @@
             }
 
             // =========================================================
-            // 终极图片加载逻辑，专治 GitHub Pages 路径问题
+            // 图片加载逻辑
             // =========================================================
             function loadImages() {
                 galleryContainer.innerHTML = '';
@@ -205,22 +242,19 @@
 
                         const ext = extensions[extIndex];
                         
-                        // ！！！核心修复！！！
-                        // 使用 './photo/' 相对路径，完美兼容 GitHub Pages
-                        // 加上 ?v=时间戳 防止浏览器缓存之前的 404 错误
+                        // 使用相对路径，防缓存
                         const imgSrc = `./photo/${index}.${ext}?v=${Date.now()}`;
                         
                         const img = new Image();
                         
                         img.onload = () => {
                             foundAny = true;
-                            console.log(`成功加载图片: ${imgSrc}`);
                             
                             const wrapper = document.createElement('div');
                             wrapper.className = 'photo-item';
                             
                             const imgEl = document.createElement('img');
-                            imgEl.src = imgSrc; // 加载成功后，使用带时间戳的 src 即可
+                            imgEl.src = imgSrc;
                             imgEl.alt = `照片 ${index}`;
                             imgEl.loading = 'lazy';
                             
