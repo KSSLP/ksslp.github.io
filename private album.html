@@ -245,9 +245,8 @@
                         // 探测这个文件是否存在（自动匹配后缀）
                         let found = false;
                         for (let ext of extensions) {
-                            // 注意：这里假设您的私密图片都放在一个叫 `private_photos` 的文件夹里
-                            // 如果图片直接散落在根目录，就改成 `./${name}.${ext}`
-                            const imgSrc = `./private_photos/${name}.${ext}`; 
+                            // 注意：这里改成了 private_photo 文件夹
+                            const imgSrc = `./private_photo/${name}.${ext}`; 
                             if (await probeImage(imgSrc)) {
                                 imgEl.src = imgSrc;
                                 found = true;
