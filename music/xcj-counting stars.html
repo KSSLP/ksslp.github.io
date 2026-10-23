@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XCJ-Counting Stars</title>
-    <link rel="icon" href="../ciallo.png" type="image/png">
+    <title>Counting Stars - 播放器</title>
     <style>
         /* ---------- 基础重置 ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,9 +76,15 @@
             background: #eaf0f6; box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
         }
 
+        /* 完美适配的封面图片 */
         .album-art img {
-            position: absolute; inset: 0; width: 100%; height: 100%;
-            object-fit: cover; border-radius: 50%; z-index: 1;
+            position: absolute; 
+            inset: 0; 
+            width: 100%; 
+            height: 100%;
+            object-fit: cover; 
+            border-radius: 50%; 
+            z-index: 1;
         }
 
         .song-info { text-align: center; margin-bottom: 2rem; }
@@ -179,7 +184,8 @@
 
         <div class="player-left">
             <div class="album-art" id="album-art">
-                <img src="cover.jpg" alt="Album Cover" onerror="this.style.display='none'">
+                <!-- 修改了这里的 src，指向您的 XCJ 专属封面 -->
+                <img src="xcj-cover.jpg" alt="XCJ Cover" onerror="this.style.display='none'">
             </div>
             
             <div class="song-info">
@@ -222,7 +228,7 @@
             const lyricsList = document.getElementById('lyrics-list');
 
             // ==========================================
-            // 歌词数据 (使用您提供的准确歌词)
+            // 歌词数据
             // ==========================================
             const lyricsData = [
                 { time: 0, text: "I've been losing sleep" },
