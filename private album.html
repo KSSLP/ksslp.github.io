@@ -85,6 +85,7 @@
             animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden;
             text-align: left;
         }
+        
         /* 图片上方的文件名 */
         .photo-name { 
             font-size: 1.25rem; font-weight: 700; color: #162b3c; margin-bottom: 0.8rem; padding-left: 0.5rem;
@@ -187,7 +188,7 @@
                     input.value = '';
                     errorMsg.classList.remove('show');
                     
-                    // 加载照片列表
+                    // 验证成功，加载 JSON 相册
                     loadPhotoList();
                 } else {
                     showError("密码不正确哦，再想想~");
@@ -203,15 +204,15 @@
             }
 
             // ==========================================
-            // 加载 JSON 列表并渲染照片
+            // 读取 JSON 并渲染照片
             // ==========================================
             async function loadPhotoList() {
                 try {
-                    // 请求您准备的 JSON 文件
-                    const response = await fetch('private photos.json?t=' + Date.now(), { cache: 'no-store' });
-                    if (!response.ok) throw new Error('无法读取 private photos.json');
+                    // 已修改：请求根目录下的 private photo.json 文件
+                    const response = await fetch('private photo.json?t=' + Date.now(), { cache: 'no-store' });
+                    if (!response.ok) throw new Error('无法读取 private photo.json');
                     
-                    // 解析 JSON，格式应为：["图片1", "图片2", "合照"]
+                    // 解析 JSON，格式为：["照片名字1", "照片名字2"]
                     const photoNames = await response.json();
 
                     if (!photoNames || photoNames.length === 0) {
@@ -222,7 +223,7 @@
                     galleryContainer.innerHTML = ''; // 清空加载提示
                     const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
 
-                    // 遍历名字，寻找对应的图片文件
+                    // 遍历 JSON 里的名字，去 private_photo 文件夹里找图
                     for (let i = 0; i < photoNames.length; i++) {
                         const name = photoNames[i];
                         
@@ -232,7 +233,7 @@
 
                         const nameEl = document.createElement('div');
                         nameEl.className = 'photo-name';
-                        nameEl.textContent = name;
+                        nameEl.textContent = name; // 显示 JSON 里的名字
                         wrapper.appendChild(nameEl);
 
                         const imgEl = document.createElement('img');
@@ -242,10 +243,9 @@
                         
                         galleryContainer.appendChild(wrapper);
 
-                        // 探测这个文件是否存在（自动匹配后缀）
+                        // 自动探测后缀
                         let found = false;
                         for (let ext of extensions) {
-                            // 注意：这里改成了 private_photo 文件夹
                             const imgSrc = `./private_photo/${name}.${ext}`; 
                             if (await probeImage(imgSrc)) {
                                 imgEl.src = imgSrc;
@@ -254,14 +254,14 @@
                             }
                         }
                         
-                        // 如果所有后缀都没找到这张图，隐藏这个占位
+                        // 如果没找到对应的图，隐藏该占位
                         if (!found) {
                             wrapper.style.display = 'none';
                         }
                     }
                 } catch (err) {
                     console.error("加载照片列表失败:", err);
-                    galleryContainer.innerHTML = `<div class="loading-status" style="color: #d32f2f;">无法加载照片，请确保根目录下有正确的 <b>private photos.json</b> 文件。</div>`;
+                    galleryContainer.innerHTML = `<div class="loading-status" style="color: #d32f2f;">无法加载照片，请确保根目录下有正确的 <b>private photo.json</b> 文件。</div>`;
                 }
             }
 
