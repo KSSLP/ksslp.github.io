@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>沅神开播了 - 视频选集</title>
+    <style>
+        /* ---------- 基础重置 ---------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f4f7fb;
+            padding: 1.5rem;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰光斑 */
+        .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
+        .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
+        .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
+        @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
+
+        /* ---------- 主卡片容器 ---------- */
+        .video-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 2.5rem;
+            padding: 3.5rem 3rem;
+            max-width: 1000px;
+            width: 100%;
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
+                        0 6px 18px rgba(0, 0, 0, 0.05),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            position: relative;
+            z-index: 2;
+            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes cardEnter {
+            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* 顶部信息与操作区 */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-size: clamp(1.8rem, 6vw, 3rem);
+            font-weight: 800;
+            color: #162b3c;
+            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
+        }
+
+        /* 下载按钮 */
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #183e5c;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            padding: 0.8rem 1.8rem;
+            border-radius: 100px;
+            box-shadow: 0 10px 20px -8px rgba(20, 45, 70, 0.5);
+            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.28s ease;
+        }
+
+        .download-btn:hover {
+            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px -8px rgba(10, 30, 50, 0.7);
+        }
+
+        /* 选集区域 */
+        .episodes-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            max-height: 220px;
+            overflow-y: auto;
+            min-height: 60px; /* 保证在加载时有占位空间 */
+            position: relative;
+        }
+
+        /* 扫描提示文字 */
+        .scanning-text {
+            width: 100%;
+            text-align: center;
+            color: #607d8b;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* 自定义滚动条 */
+        .episodes-container::-webkit-scrollbar { width: 6px; }
+        .episodes-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
+        .episodes-container::-webkit-scrollbar-thumb { background: rgba(24, 62, 92, 0.3); border-radius: 10px; }
+
+        .ep-btn {
+            background: #e0e8f0;
+            color: #183e5c;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 0.6rem 1.4rem;
+            border-radius: 100px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            animation: fadeIn 0.4s ease both;
+        }
+
+        .ep-btn:hover {
+            background: #c9d8e8;
+            transform: translateY(-2px);
+        }
+
+        .ep-btn.active {
+            background: #183e5c;
+            color: white;
+            box-shadow: 0 8px 15px -5px rgba(20, 45, 70, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 视频播放区 */
+        .player-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            background: #000;
+            aspect-ratio: 16 / 9;
+            box-shadow: 0 20px 40px -15px rgba(0, 20, 40, 0.3);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* 缺失提示层 (备用，正常扫描后不会出现) */
+        .error-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #1a2b3c;
+            color: #a0aec0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            z-index: 5;
+        }
+
+        .error-overlay svg {
+            width: 60px;
+            height: 60px;
+            fill: #607d8b;
+            margin-bottom: 1rem;
+        }
+
+        /* 自定义全屏按钮 (悬浮在右下角) */
+        .custom-fullscreen-btn {
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: background 0.2s ease, transform 0.2s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .custom-fullscreen-btn:hover {
+            background: rgba(0, 0, 0, 0.85);
+            transform: scale(1.1);
+        }
+
+        .custom-fullscreen-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        /* 小屏优化 */
+        @media (max-width: 768px) {
+            .video-card { padding: 2rem 1.5rem; border-radius: 2rem; }
+            .header-row { flex-direction: column; align-items: flex-start; }
+            .download-btn { width: 100%; justify-content: center; }
+            .episodes-container { max-height: 150px; }
+            .ep-btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <div class="video-card">
+        <!-- 顶部信息 -->
+        <div class="header-row">
+            <div class="page-title">沅神开播了</div>
+            <a href="https://url13.ctfile.com/d/66483413-169022880-81591a?p=D8g7Nj1w" target="_blank" rel="noopener noreferrer" class="download-btn">
+                <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: currentColor;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                下载原视频
+            </a>
+        </div>
+
+        <!-- 选集区 -->
+        <div class="episodes-container" id="episodes-container">
+            <div class="scanning-text" id="scanning-text">正在扫描可用集数，请稍候...</div>
+        </div>
+
+        <!-- 视频播放区 -->
+        <div class="player-wrapper" id="player-wrapper">
+            <video id="video-player" controls preload="metadata" playsinline webkit-playsinline></video>
+            
+            <div class="error-overlay" id="error-overlay" style="display: none;">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                <span>本集内容缺失</span>
+            </div>
+
+            <button class="custom-fullscreen-btn" id="fullscreen-btn" title="全屏播放">
+                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const episodesContainer = document.getElementById('episodes-container');
+            const scanningText = document.getElementById('scanning-text');
+            const videoPlayer = document.getElementById('video-player');
+            const errorOverlay = document.getElementById('error-overlay');
+            const playerWrapper = document.getElementById('player-wrapper');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+            // 设置扫描上限（比如 200 集），以免无限发请求
+            const MAX_SCAN = 200;
+            let availableEpisodes = [];
+
+            // ==========================================
+            // 1. 智能扫描逻辑 (并发探测)
+            // ==========================================
+            async function scanEpisodes() {
+                const promises = [];
+                
+                // 并发发起探测，只查文件头（不下载视频本体，速度极快）
+                for (let i = 1; i <= MAX_SCAN; i++) {
+                    promises.push(probeVideo(i));
+                }
+
+                // 等待所有探测完成
+                const results = await Promise.all(promises);
+                
+                // 过滤出存在的结果并排序
+                availableEpisodes = results.filter(num => num !== null).sort((a, b) => a - b);
+
+                // 渲染按钮
+                renderEpisodeButtons();
+            }
+
+            // 探测某个视频是否存在
+            function probeVideo(index) {
+                return new Promise((resolve) => {
+                    // 这里使用 HEAD 请求，只获取响应头，不下载整个视频
+                    fetch(`./yskbl/${index}.mp4`, { method: 'HEAD' })
+                        .then(response => {
+                            // HTTP 200 表示文件存在，404 表示不存在
+                            if (response.ok) {
+                                resolve(index);
+                            } else {
+                                resolve(null);
+                            }
+                        })
+                        .catch(() => {
+                            // 如果网络或跨域错误，按不存在处理
+                            resolve(null);
+                        });
+                });
+            }
+
+            // ==========================================
+            // 2. 渲染选集按钮
+            // ==========================================
+            function renderEpisodeButtons() {
+                // 清空加载提示
+                episodesContainer.innerHTML = '';
+
+                if (availableEpisodes.length === 0) {
+                    episodesContainer.innerHTML = '<div class="scanning-text">没有找到任何视频，请上传视频到 yskbl 文件夹。</div>';
+                    errorOverlay.style.display = 'flex';
+                    videoPlayer.style.display = 'none';
+                    return;
+                }
+
+                // 生成按钮
+                availableEpisodes.forEach((ep, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'ep-btn';
+                    btn.textContent = `第 ${ep} 集`;
+                    btn.dataset.episode = ep;
+                    // 设置入场动画的延迟，呈现依次弹出的效果
+                    btn.style.animationDelay = `${Math.min(idx * 0.05, 1)}s`;
+                    
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        loadEpisode(ep);
+                    });
+                    
+                    episodesContainer.appendChild(btn);
+                });
+
+                // 默认自动选中并播放第一集
+                const firstBtn = episodesContainer.querySelector('.ep-btn');
+                if (firstBtn) {
+                    firstBtn.classList.add('active');
+                    loadEpisode(availableEpisodes[0]);
+                }
+            }
+
+            // ==========================================
+            // 3. 播放逻辑
+            // ==========================================
+            function loadEpisode(episodeNumber) {
+                errorOverlay.style.display = 'none';
+                videoPlayer.style.display = 'block';
+
+                const videoSrc = `./yskbl/${episodeNumber}.mp4`;
+
+                videoPlayer.src = videoSrc;
+                videoPlayer.play().catch(e => {
+                    console.log("自动播放被拦截，用户需手动点击播放按钮。");
+                });
+
+                // 作为双重保障：如果 HEAD 请求成功但实际 GET 失败（极少见）
+                videoPlayer.onerror = () => {
+                    videoPlayer.style.display = 'none';
+                    errorOverlay.style.display = 'flex';
+                };
+            }
+
+            // 启动扫描
+            scanEpisodes();
+
+            // ==========================================
+            // 4. 自定义全屏逻辑
+            // ==========================================
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    if (playerWrapper.requestFullscreen) {
+                        playerWrapper.requestFullscreen();
+                    } else if (playerWrapper.webkitRequestFullscreen) { /* Safari */
+                        playerWrapper.webkitRequestFullscreen();
+                    } else if (playerWrapper.msRequestFullscreen) { /* IE11 */
+                        playerWrapper.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
