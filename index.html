@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>包头中学2027届3班</title>
-    <link rel="icon" href="ciallo.png" type="image/png">
+    <!-- 网站图标留空 -->
     <style>
         /* ---------- 基础重置 ---------- */
         * {
@@ -36,11 +36,10 @@
             font-size: 1rem;
             font-weight: 600;
             color: #183e5c;
-            text-decoration: underline; /* 添加下划线 */
-            text-decoration-color: currentColor; /* 下划线颜色与文字同步 */
-            text-underline-offset: 4px; /* 下划线稍微往下一点，不贴字 */
-            text-decoration-thickness: 2px; /* 下划线稍微加粗，更有质感 */
-            
+            text-decoration: underline;
+            text-decoration-color: currentColor;
+            text-underline-offset: 4px;
+            text-decoration-thickness: 2px;
             padding: 0.6rem 1.2rem;
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(8px);
@@ -55,7 +54,7 @@
         .top-left-link:hover {
             background: #183e5c;
             color: #ffffff;
-            text-decoration-color: #ffffff; /* 悬停时下划线随文字变白 */
+            text-decoration-color: #ffffff;
             transform: translateY(-3px) scale(1.03);
             box-shadow: 0 10px 25px rgba(20, 45, 70, 0.3);
         }
@@ -65,7 +64,6 @@
             box-shadow: 0 2px 8px rgba(0, 20, 40, 0.2);
         }
 
-        /* 小屏幕适配 */
         @media (max-width: 480px) {
             .top-left-link {
                 top: 1rem;
@@ -108,26 +106,23 @@
             }
         }
 
-        /* ---------- 大字标题 ---------- */
+        /* ---------- 彩虹波浪大字 ---------- */
         .welcome-text {
-            /* 使用 clamp 保证大屏够大，小屏不溢出 */
-            font-size: clamp(2rem, 9vw, 6rem);
-            font-weight: 800;
+            font-size: clamp(1.8rem, 6vw, 4.5rem); /* 稍微调小一点上限，保证长文字在一行或完美换行 */
+            font-weight: 900;
             letter-spacing: 0.02em;
-            line-height: 1.25;
-            color: #162b3c; /* 深蓝黑 */
-            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
+            line-height: 1.3;
             margin-bottom: 3.5rem;
             word-break: break-word;
             
-            /* 用 flex 居中 */
+            /* 使用 flex 居中，并允许换行 */
             display: flex;
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
-
-            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both,
-                       gentleFloat 6s ease-in-out 1.2s infinite;
+            
+            /* 整体入场动画 */
+            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
         }
 
         @keyframes textEnter {
@@ -143,14 +138,66 @@
             }
         }
 
-        @keyframes gentleFloat {
-            0%, 100% {
-                transform: translateY(0);
+        /* 为文字中的每个字加上动画和彩虹色 */
+        .welcome-text span {
+            display: inline-block;
+            /* 彩虹渐变文字 */
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+            background-size: 700% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.9); /* 加一点白色描边，增加立体感 */
+            
+            /* 动画：颜色流动 + 3D翻转起伏 */
+            animation: rainbowFlow 4s linear infinite, mcFloat 2.5s ease-in-out infinite alternate;
+        }
+
+        /* 颜色流动动画 */
+        @keyframes rainbowFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        /* 类似 Minecraft 的旋转/浮动（利用 3D 旋转营造立体感） */
+        @keyframes mcFloat {
+            0% { 
+                transform: translateY(0) rotateX(0deg) rotateY(0deg) scale(1); 
+                text-shadow: 0 4px 6px rgba(0,0,0,0.1);
             }
-            50% {
-                transform: translateY(-6px);
+            50% { 
+                transform: translateY(-8px) rotateX(10deg) rotateY(5deg) scale(1.05); 
+                text-shadow: 0 12px 15px rgba(0,0,0,0.15);
+            }
+            100% { 
+                transform: translateY(0) rotateX(0deg) rotateY(0deg) scale(1); 
+                text-shadow: 0 4px 6px rgba(0,0,0,0.1);
             }
         }
+
+        /* 错开每个字的动画时间，形成波浪效果 */
+        /* 通过设置不同的 animation-delay 实现 */
+        .welcome-text span:nth-child(1)  { animation-delay: 0s, 0s; }
+        .welcome-text span:nth-child(2)  { animation-delay: 0.1s, 0.05s; }
+        .welcome-text span:nth-child(3)  { animation-delay: 0.2s, 0.1s; }
+        .welcome-text span:nth-child(4)  { animation-delay: 0.3s, 0.15s; }
+        .welcome-text span:nth-child(5)  { animation-delay: 0.4s, 0.2s; }
+        .welcome-text span:nth-child(6)  { animation-delay: 0.5s, 0.25s; }
+        .welcome-text span:nth-child(7)  { animation-delay: 0.6s, 0.3s; }
+        .welcome-text span:nth-child(8)  { animation-delay: 0.7s, 0.35s; }
+        .welcome-text span:nth-child(9)  { animation-delay: 0.8s, 0.4s; }
+        .welcome-text span:nth-child(10) { animation-delay: 0.9s, 0.45s; }
+        .welcome-text span:nth-child(11) { animation-delay: 1.0s, 0.5s; }
+        .welcome-text span:nth-child(12) { animation-delay: 1.1s, 0.55s; }
+        .welcome-text span:nth-child(13) { animation-delay: 1.2s, 0.6s; }
+        .welcome-text span:nth-child(14) { animation-delay: 1.3s, 0.65s; }
+        .welcome-text span:nth-child(15) { animation-delay: 1.4s, 0.7s; }
+        .welcome-text span:nth-child(16) { animation-delay: 1.5s, 0.75s; }
+        .welcome-text span:nth-child(17) { animation-delay: 1.6s, 0.8s; }
+        .welcome-text span:nth-child(18) { animation-delay: 1.7s, 0.85s; }
+        .welcome-text span:nth-child(19) { animation-delay: 1.8s, 0.9s; }
+        .welcome-text span:nth-child(20) { animation-delay: 1.9s, 0.95s; }
 
         /* ---------- 按钮 ---------- */
         .go-button {
@@ -229,13 +276,11 @@
             transition: transform 0.06s, box-shadow 0.06s, background-image 0.06s;
         }
 
-        /* 焦点可见 */
         .go-button:focus-visible {
             outline: 4px solid #96c0e6;
             outline-offset: 6px;
         }
 
-        /* 按钮高光 */
         .go-button::before {
             content: "";
             position: absolute;
@@ -305,8 +350,8 @@
                 border-radius: 2rem;
             }
             .welcome-text {
-                font-size: clamp(1.8rem, 10vw, 3.2rem);
-                margin-bottom: 2.2rem;
+                font-size: clamp(1.6rem, 8vw, 2.5rem);
+                margin-bottom: 2.5rem;
             }
             .go-button {
                 padding: 0.9rem 2.5rem;
@@ -325,11 +370,8 @@
     </style>
 </head>
 <body>
-    <!-- 左上角超链接，在新标签页打开 -->
-    <a href="yskbl.html" 
-       target="_blank" 
-       rel="noopener noreferrer" 
-       class="top-left-link">
+    <!-- 左上角超链接 -->
+    <a href="yskbl.html" class="top-left-link">
         沅神开播了
     </a>
 
@@ -339,11 +381,33 @@
     <div class="bg-orb orb-3"></div>
 
     <div class="welcome-card">
-        <!-- 将文本完全改为“欢迎后面懒得打了” -->
-        <div class="welcome-text">欢迎 后面懒得打了</div>
+        <!-- 文字由 JS 动态拆分为单字，以便实现波浪效果 -->
+        <div class="welcome-text" id="welcome-text">
+            上海市包头中学2027届3班
+        </div>
 
         <!-- 按钮保持不变 -->
         <a href="content.html" class="go-button" role="button">Let's go!!!</a>
     </div>
+
+    <script>
+        // 将文字拆分为单个字符，方便单独控制动画延迟，实现 Minecraft 波浪效果
+        document.addEventListener("DOMContentLoaded", () => {
+            const textElement = document.getElementById('welcome-text');
+            const text = textElement.textContent.trim();
+            
+            // 清空原有内容并重新插入 span 标签
+            textElement.innerHTML = '';
+            for (let i = 0; i < text.length; i++) {
+                const span = document.createElement('span');
+                span.textContent = text[i];
+                // 针对空格特殊处理，保持占位
+                if (text[i] === ' ') {
+                    span.style.width = '0.5em';
+                }
+                textElement.appendChild(span);
+            }
+        });
+    </script>
 </body>
 </html>
