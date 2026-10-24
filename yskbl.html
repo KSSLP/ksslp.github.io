@@ -56,10 +56,10 @@
         .ep-btn.active { background: #183e5c; color: white; box-shadow: 0 8px 15px -5px rgba(20, 45, 70, 0.5); }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-        /* 视频标题区（已移动到视频上方） */
+        /* 视频标题区 */
         .video-title-area { 
             text-align: left; 
-            margin-bottom: 1rem; /* 距离视频稍微近一点 */
+            margin-bottom: 1rem; 
             padding: 0 0.5rem; 
             display: none; 
         }
@@ -114,7 +114,7 @@
             <div class="scanning-text" id="scanning-text">正在读取视频列表，请稍候...</div>
         </div>
 
-        <!-- 视频标题区（已移动到视频上方） -->
+        <!-- 视频标题区 -->
         <div class="video-title-area" id="video-title-area">
             <div class="video-title-text" id="video-title-text"></div>
         </div>
@@ -127,6 +127,10 @@
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 <span id="error-text">本集内容缺失</span>
             </div>
+
+            <button class="custom-fullscreen-btn" id="fullscreen-btn" title="全屏播放">
+                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
         </div>
     </div>
 
@@ -143,6 +147,9 @@
 
             let videoList = [];
 
+            // ==========================================
+            // 1. 读取 JSON 列表
+            // ==========================================
             async function fetchVideoList() {
                 try {
                     const response = await fetch('./yskbl/list.json?t=' + Date.now(), { cache: 'no-store' });
@@ -161,37 +168,71 @@
                 }
             }
 
+            // ==========================================
+            // 2. 智能解析文件名与渲染
+            // ==========================================
             function renderEpisodeButtons() {
                 episodesContainer.innerHTML = '';
 
                 videoList.forEach((filename, idx) => {
-                    const match = filename.match(/^(\d+)\./);
-                    const epNumber = match ? match[1] : (idx + 1);
-                    const title = filename.replace(/^\d+\./, '').replace(/\.[^.]+$/, '');
+                    // 核心解析逻辑
+                    let buttonText = '';
+                    let videoTitle = '';
 
+                    // 先去掉扩展名，比如 "番外1.汪洋大海.mp4" -> "番外1.汪洋大海"
+                    const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+
+                    // 如果名字里有 "."，说明前面是按钮名，后面是标题
+                    if (nameWithoutExt.includes('.')) {
+                        const parts = nameWithoutExt.split('.');
+                        buttonText = parts[0]; // 前半部分，例如 "番外1" 或 "1"
+                        videoTitle = parts.slice(1).join('.'); // 后半部分，例如 "汪洋大海" 或 "绝望来临"
+
+                        // 如果是纯数字（如 "1"），就给它加上“第 X 集”
+                        if (/^\d+$/.test(buttonText)) {
+                            buttonText = `第 ${buttonText} 集`;
+                        }
+                    } else {
+                        // 如果连点都没有（比如直接叫 "预告.mp4"），就把整个名字当按钮
+                        buttonText = nameWithoutExt;
+                        videoTitle = ''; // 没有标题
+                    }
+
+                    // 创建按钮
                     const btn = document.createElement('button');
                     btn.className = 'ep-btn';
-                    btn.textContent = `第 ${epNumber} 集`;
+                    btn.textContent = buttonText;
                     btn.style.animationDelay = `${Math.min(idx * 0.05, 1)}s`;
 
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
-                        loadEpisode(filename, title);
+                        loadEpisode(filename, videoTitle);
                     });
 
                     episodesContainer.appendChild(btn);
                 });
 
+                // 默认播放第一个
                 const firstBtn = episodesContainer.querySelector('.ep-btn');
                 if (firstBtn && videoList.length > 0) {
                     firstBtn.classList.add('active');
+                    
+                    // 获取第一个视频的标题
                     const firstFilename = videoList[0];
-                    const firstTitle = firstFilename.replace(/^\d+\./, '').replace(/\.[^.]+$/, '');
+                    const nameWithoutExt = firstFilename.replace(/\.[^.]+$/, '');
+                    let firstTitle = '';
+                    if (nameWithoutExt.includes('.')) {
+                        firstTitle = nameWithoutExt.split('.').slice(1).join('.');
+                    }
+                    
                     loadEpisode(firstFilename, firstTitle);
                 }
             }
 
+            // ==========================================
+            // 3. 加载并播放
+            // ==========================================
             function loadEpisode(filename, title) {
                 errorOverlay.style.display = 'none';
                 videoPlayer.style.display = 'block';
@@ -222,6 +263,7 @@
 
             fetchVideoList();
 
+            // 4. 自定义全屏
             fullscreenBtn.addEventListener('click', () => {
                 if (!document.fullscreenElement) {
                     if (playerWrapper.requestFullscreen) playerWrapper.requestFullscreen();
