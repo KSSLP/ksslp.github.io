@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>沅神开播了 - 视频选集</title>
     <style>
-        /* ---------- 基础重置 ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
             min-height: 100vh;
@@ -18,226 +16,76 @@
             padding: 1.5rem;
             overflow-x: hidden;
         }
-
-        /* 背景装饰光斑 */
         .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
         .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
         .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
         @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
-
-        /* ---------- 主卡片容器 ---------- */
+        
         .video-card {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 2.5rem;
-            padding: 3.5rem 3rem;
-            max-width: 1000px;
-            width: 100%;
-            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
-                        0 6px 18px rgba(0, 0, 0, 0.05),
-                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            position: relative;
-            z-index: 2;
-            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-radius: 2.5rem; padding: 3.5rem 3rem; max-width: 1000px; width: 100%;
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15), 0 6px 18px rgba(0, 0, 0, 0.05), inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.9); position: relative; z-index: 2; animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-
-        @keyframes cardEnter {
-            0% { opacity: 0; transform: translateY(40px) scale(0.96); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        /* 顶部信息与操作区 */
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .page-title {
-            font-size: clamp(1.8rem, 6vw, 3rem);
-            font-weight: 800;
-            color: #162b3c;
-            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
-        }
-
-        /* 下载按钮 */
+        @keyframes cardEnter { 0% { opacity: 0; transform: translateY(40px) scale(0.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title { font-size: clamp(1.8rem, 6vw, 3rem); font-weight: 800; color: #162b3c; text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06); }
+        
         .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: #183e5c;
-            color: white;
-            font-size: 1rem;
-            font-weight: 700;
-            text-decoration: none;
-            padding: 0.8rem 1.8rem;
-            border-radius: 100px;
-            box-shadow: 0 10px 20px -8px rgba(20, 45, 70, 0.5);
-            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.28s ease;
+            display: inline-flex; align-items: center; gap: 0.5rem; background: #183e5c; color: white; font-size: 1rem; font-weight: 700; text-decoration: none;
+            padding: 0.8rem 1.8rem; border-radius: 100px; box-shadow: 0 10px 20px -8px rgba(20, 45, 70, 0.5); background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            border: 1px solid rgba(255, 255, 255, 0.2); transition: all 0.28s ease;
         }
-
-        .download-btn:hover {
-            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
-            transform: translateY(-3px);
-            box-shadow: 0 15px 25px -8px rgba(10, 30, 50, 0.7);
-        }
-
-        /* 选集区域 */
+        .download-btn:hover { background-image: linear-gradient(145deg, #1d4468, #0a1f30); transform: translateY(-3px); box-shadow: 0 15px 25px -8px rgba(10, 30, 50, 0.7); }
+        
         .episodes-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem;
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            max-height: 220px;
-            overflow-y: auto;
-            min-height: 60px;
-            position: relative;
+            display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            max-height: 220px; overflow-y: auto; min-height: 60px; position: relative;
         }
-
-        /* 扫描提示文字 */
-        .scanning-text {
-            width: 100%;
-            text-align: center;
-            color: #607d8b;
-            font-size: 1rem;
-            font-weight: 600;
-            margin-top: 0.5rem;
-        }
-
-        /* 自定义滚动条 */
+        .scanning-text { width: 100%; text-align: center; color: #607d8b; font-size: 1rem; font-weight: 600; margin-top: 0.5rem; }
         .episodes-container::-webkit-scrollbar { width: 6px; }
         .episodes-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
         .episodes-container::-webkit-scrollbar-thumb { background: rgba(24, 62, 92, 0.3); border-radius: 10px; }
-
-        .ep-btn {
-            background: #e0e8f0;
-            color: #183e5c;
-            font-size: 1rem;
-            font-weight: 700;
-            padding: 0.6rem 1.4rem;
-            border-radius: 100px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            animation: fadeIn 0.4s ease both;
-        }
-
-        .ep-btn:hover {
-            background: #c9d8e8;
-            transform: translateY(-2px);
-        }
-
-        .ep-btn.active {
-            background: #183e5c;
-            color: white;
-            box-shadow: 0 8px 15px -5px rgba(20, 45, 70, 0.5);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        /* 视频播放区 */
-        .player-wrapper {
-            position: relative;
-            width: 100%;
-            border-radius: 1.5rem;
-            overflow: hidden;
-            background: #000;
-            aspect-ratio: 16 / 9;
-            box-shadow: 0 20px 40px -15px rgba(0, 20, 40, 0.3);
-            margin-bottom: 1.5rem;
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
-
-        /* 缺失提示层 */
-        .error-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #1a2b3c;
-            color: #a0aec0;
-            font-size: 1.2rem;
-            font-weight: 600;
-            z-index: 5;
-        }
-
-        .error-overlay svg {
-            width: 60px;
-            height: 60px;
-            fill: #607d8b;
-            margin-bottom: 1rem;
-        }
-
-        /* 自定义全屏按钮 */
-        .custom-fullscreen-btn {
-            position: absolute;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: background 0.2s ease, transform 0.2s ease;
-            backdrop-filter: blur(4px);
-        }
-
-        .custom-fullscreen-btn:hover {
-            background: rgba(0, 0, 0, 0.85);
-            transform: scale(1.1);
-        }
-
-        .custom-fullscreen-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-        }
-
-        /* 视频标题区 */
-        .video-title-area {
-            text-align: left;
-            margin-bottom: 1.5rem;
-            padding: 0 0.5rem;
-            display: none;
-        }
         
-        .video-title-area.show {
-            display: block;
+        .ep-btn {
+            background: #e0e8f0; color: #183e5c; font-size: 1rem; font-weight: 700; padding: 0.6rem 1.4rem; border-radius: 100px;
+            border: none; cursor: pointer; transition: all 0.2s ease; animation: fadeIn 0.4s ease both;
         }
+        .ep-btn:hover { background: #c9d8e8; transform: translateY(-2px); }
+        .ep-btn.active { background: #183e5c; color: white; box-shadow: 0 8px 15px -5px rgba(20, 45, 70, 0.5); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-        .video-title-text {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #162b3c;
+        /* 视频标题区（已移动到视频上方） */
+        .video-title-area { 
+            text-align: left; 
+            margin-bottom: 1rem; /* 距离视频稍微近一点 */
+            padding: 0 0.5rem; 
+            display: none; 
         }
+        .video-title-area.show { display: block; }
+        .video-title-text { font-size: 1.4rem; font-weight: 800; color: #162b3c; }
 
-        /* 小屏优化 */
+        .player-wrapper {
+            position: relative; width: 100%; border-radius: 1.5rem; overflow: hidden; background: #000; aspect-ratio: 16 / 9;
+            box-shadow: 0 20px 40px -15px rgba(0, 20, 40, 0.3); margin-bottom: 1.5rem;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; display: block; }
+        
+        .error-overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #1a2b3c; color: #a0aec0; font-size: 1.2rem; font-weight: 600; z-index: 5; padding: 2rem; text-align: center; line-height: 1.6;
+        }
+        .error-overlay svg { width: 60px; height: 60px; fill: #607d8b; margin-bottom: 1rem; }
+        
+        .custom-fullscreen-btn {
+            position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(0, 0, 0, 0.6); color: white; border: none; border-radius: 50%;
+            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;
+            transition: background 0.2s ease, transform 0.2s ease; backdrop-filter: blur(4px);
+        }
+        .custom-fullscreen-btn:hover { background: rgba(0, 0, 0, 0.85); transform: scale(1.1); }
+        .custom-fullscreen-btn svg { width: 24px; height: 24px; fill: white; }
+
         @media (max-width: 768px) {
             .video-card { padding: 2rem 1.5rem; border-radius: 2rem; }
             .header-row { flex-direction: column; align-items: flex-start; }
@@ -253,7 +101,6 @@
     <div class="bg-orb orb-2"></div>
 
     <div class="video-card">
-        <!-- 顶部信息 -->
         <div class="header-row">
             <div class="page-title">沅神开播了</div>
             <a href="https://url13.ctfile.com/d/66483413-169022880-81591a?p=D8g7Nj1w" target="_blank" rel="noopener noreferrer" class="download-btn">
@@ -267,32 +114,32 @@
             <div class="scanning-text" id="scanning-text">正在读取视频列表，请稍候...</div>
         </div>
 
+        <!-- 视频标题区（已移动到视频上方） -->
+        <div class="video-title-area" id="video-title-area">
+            <div class="video-title-text" id="video-title-text"></div>
+        </div>
+
         <!-- 视频播放区 -->
         <div class="player-wrapper" id="player-wrapper">
             <video id="video-player" controls preload="metadata" playsinline webkit-playsinline></video>
             
             <div class="error-overlay" id="error-overlay" style="display: none;">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                <span>本集内容缺失</span>
+                <span id="error-text">本集内容缺失</span>
             </div>
 
             <button class="custom-fullscreen-btn" id="fullscreen-btn" title="全屏播放">
                 <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
         </div>
-
-        <!-- 视频标题区 -->
-        <div class="video-title-area" id="video-title-area">
-            <div class="video-title-text" id="video-title-text"></div>
-        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const episodesContainer = document.getElementById('episodes-container');
-            const scanningText = document.getElementById('scanning-text');
             const videoPlayer = document.getElementById('video-player');
             const errorOverlay = document.getElementById('error-overlay');
+            const errorText = document.getElementById('error-text');
             const playerWrapper = document.getElementById('player-wrapper');
             const fullscreenBtn = document.getElementById('fullscreen-btn');
             const videoTitleArea = document.getElementById('video-title-area');
@@ -300,51 +147,35 @@
 
             let videoList = [];
 
-            // ==========================================
-            // 1. 读取 JSON 列表
-            // ==========================================
             async function fetchVideoList() {
                 try {
-                    // 请求 yskbl 目录下的 list.json
                     const response = await fetch('./yskbl/list.json?t=' + Date.now(), { cache: 'no-store' });
-                    if (!response.ok) throw new Error('无法读取视频列表');
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     
-                    // JSON 格式应当为数组，例如：["1.xxx.mp4", "2.yyy.mp4"]
                     const data = await response.json();
-                    
                     if (!Array.isArray(data) || data.length === 0) {
-                        throw new Error('视频列表为空');
+                        throw new Error('JSON格式错误：必须是非空数组');
                     }
 
                     videoList = data;
                     renderEpisodeButtons();
                 } catch (err) {
-                    console.error("读取列表失败:", err);
+                    console.error("读取 list.json 失败:", err);
                     episodesContainer.innerHTML = '<div class="scanning-text" style="color: #d32f2f;">无法加载视频列表，请确保 yskbl 文件夹下有正确的 list.json。</div>';
-                    errorOverlay.style.display = 'flex';
-                    videoPlayer.style.display = 'none';
                 }
             }
 
-            // ==========================================
-            // 2. 渲染选集按钮
-            // ==========================================
             function renderEpisodeButtons() {
                 episodesContainer.innerHTML = '';
 
                 videoList.forEach((filename, idx) => {
-                    // 解析文件名，例如 "1.第一集.mp4"
-                    // 匹配出数字前缀，比如 "1"
                     const match = filename.match(/^(\d+)\./);
-                    const epNumber = match ? match[1] : (idx + 1); // 如果没数字前缀，就按顺序编号
-
-                    // 提取标题：去掉前缀数字、后面的点和扩展名
-                    // 比如 "1.第一集.mp4" -> "第一集"
-                    let title = filename.replace(/^\d+\./, '').replace(/\.[^.]+$/, '');
+                    const epNumber = match ? match[1] : (idx + 1);
+                    const title = filename.replace(/^\d+\./, '').replace(/\.[^.]+$/, '');
 
                     const btn = document.createElement('button');
                     btn.className = 'ep-btn';
-                    btn.textContent = `第 ${epNumber} 集`; // 按钮上只显示集数
+                    btn.textContent = `第 ${epNumber} 集`;
                     btn.style.animationDelay = `${Math.min(idx * 0.05, 1)}s`;
 
                     btn.addEventListener('click', () => {
@@ -356,7 +187,6 @@
                     episodesContainer.appendChild(btn);
                 });
 
-                // 默认播放第一个视频
                 const firstBtn = episodesContainer.querySelector('.ep-btn');
                 if (firstBtn && videoList.length > 0) {
                     firstBtn.classList.add('active');
@@ -366,16 +196,15 @@
                 }
             }
 
-            // ==========================================
-            // 3. 加载并播放逻辑
-            // ==========================================
             function loadEpisode(filename, title) {
                 errorOverlay.style.display = 'none';
                 videoPlayer.style.display = 'block';
 
-                // 视频路径为 yskbl/文件名
-                const videoSrc = `./yskbl/${filename}`;
+                const safeFilename = encodeURIComponent(filename);
+                const videoSrc = `./yskbl/${safeFilename}`;
+                
                 videoPlayer.src = videoSrc;
+                videoPlayer.load();
                 
                 videoPlayer.play().catch(e => {
                     console.log("自动播放被拦截，用户需手动点击播放按钮。");
@@ -384,9 +213,9 @@
                 videoPlayer.onerror = () => {
                     videoPlayer.style.display = 'none';
                     errorOverlay.style.display = 'flex';
+                    errorText.innerHTML = `本集内容缺失<br><span style="font-size: 0.9rem; color: #ffd166; margin-top: 10px; display: inline-block; word-break: break-all;">网页尝试寻找：<br>yskbl/${filename}</span><br><span style="font-size: 0.85rem; color: #a0aec0; margin-top: 5px; display: inline-block;">请检查文件是否存在且大小写一致</span>`;
                 };
 
-                // 更新标题
                 if (title && title.trim() !== '') {
                     videoTitleText.textContent = title;
                     videoTitleArea.classList.add('show');
@@ -395,27 +224,16 @@
                 }
             }
 
-            // 启动
             fetchVideoList();
 
-            // ==========================================
-            // 4. 自定义全屏逻辑
-            // ==========================================
             fullscreenBtn.addEventListener('click', () => {
                 if (!document.fullscreenElement) {
-                    if (playerWrapper.requestFullscreen) {
-                        playerWrapper.requestFullscreen();
-                    } else if (playerWrapper.webkitRequestFullscreen) {
-                        playerWrapper.webkitRequestFullscreen();
-                    } else if (playerWrapper.msRequestFullscreen) {
-                        playerWrapper.msRequestFullscreen();
-                    }
+                    if (playerWrapper.requestFullscreen) playerWrapper.requestFullscreen();
+                    else if (playerWrapper.webkitRequestFullscreen) playerWrapper.webkitRequestFullscreen();
+                    else if (playerWrapper.msRequestFullscreen) playerWrapper.msRequestFullscreen();
                 } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    }
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                 }
             });
         });
