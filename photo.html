@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>照片 - 密码验证</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- 去掉了外部 CDN 链接，算法直接内置，绝对不会因为网络卡住 -->
     <style>
-        /* ---------- 基础重置 ---------- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -22,80 +21,50 @@
             position: relative;
         }
 
-        /* 左上角私密相册按钮 */
         .top-left-link {
-            position: fixed;
-            top: 1.5rem;
-            left: 1.5rem;
-            z-index: 10;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #183e5c;
-            text-decoration: underline;
-            text-decoration-color: currentColor;
-            text-underline-offset: 4px;
-            text-decoration-thickness: 2px;
-            padding: 0.6rem 1.2rem;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.9);
+            position: fixed; top: 1.5rem; left: 1.5rem; z-index: 10;
+            font-size: 1rem; font-weight: 600; color: #183e5c;
+            text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 4px; text-decoration-thickness: 2px;
+            padding: 0.6rem 1.2rem; background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 15px rgba(0, 20, 40, 0.08);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            letter-spacing: 0.05em;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); letter-spacing: 0.05em;
         }
         .top-left-link:hover {
-            background: #183e5c;
-            color: #ffffff;
-            text-decoration-color: #ffffff;
-            transform: translateY(-3px) scale(1.03);
-            box-shadow: 0 10px 25px rgba(20, 45, 70, 0.3);
-        }
-        .top-left-link:active { transform: translateY(1px) scale(0.98); }
-
-        @media (max-width: 480px) {
-            .top-left-link { top: 1rem; left: 1rem; font-size: 0.85rem; padding: 0.5rem 1rem; text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+            background: #183e5c; color: #ffffff; text-decoration-color: #ffffff;
+            transform: translateY(-3px) scale(1.03); box-shadow: 0 10px 25px rgba(20, 45, 70, 0.3);
         }
 
         .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
         .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
         .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
         @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
+        
         .photo-card {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 3rem;
-            padding: 4.5rem 3rem;
-            max-width: 900px;
-            width: 100%;
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-radius: 3rem; padding: 4.5rem 3rem; max-width: 900px; width: 100%;
             box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15), 0 6px 18px rgba(0, 0, 0, 0.05), inset 0 1px 4px rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            position: relative;
-            z-index: 2;
-            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+            border: 1px solid rgba(255, 255, 255, 0.9); position: relative; z-index: 2; animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         @keyframes cardEnter { 0% { opacity: 0; transform: translateY(40px) scale(0.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        
         .page-title {
-            font-size: clamp(1.8rem, 6vw, 3.5rem);
-            font-weight: 800;
-            letter-spacing: 0.02em;
-            line-height: 1.4;
-            color: #162b3c;
-            text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06);
-            margin-bottom: 2rem;
-            word-break: break-word;
+            font-size: clamp(1.8rem, 6vw, 3.5rem); font-weight: 800; letter-spacing: 0.02em; line-height: 1.4;
+            color: #162b3c; text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06); margin-bottom: 2rem; word-break: break-word;
             animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
         }
         @keyframes textEnter { 0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+        
         .password-form { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 400px; margin: 0 auto; animation: fadeIn 1s ease 0.5s both; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .password-input {
             width: 100%; padding: 1rem 1.5rem; font-size: 1.2rem; border-radius: 100px; border: 2px solid rgba(24, 62, 92, 0.2);
             background: rgba(255, 255, 255, 0.9); outline: none; transition: all 0.3s ease; color: #162b3c; font-weight: 600; text-align: center;
         }
         .password-input:focus { border-color: #183e5c; box-shadow: 0 0 0 4px rgba(24, 62, 92, 0.15); }
+        
         .submit-btn {
             display: inline-block; background: #183e5c; color: white; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; padding: 1rem 3rem;
             border-radius: 100px; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
@@ -104,6 +73,7 @@
         .submit-btn:hover:not(:disabled) { background-image: linear-gradient(145deg, #1d4468, #0a1f30); transform: translateY(-3px) scale(1.02); }
         .submit-btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
         .submit-btn:disabled { background: #a0aec0; cursor: not-allowed; opacity: 0.7; box-shadow: none; }
+        
         .error-msg { color: #d32f2f; font-size: 0.95rem; font-weight: 600; min-height: 1.2rem; opacity: 0; transition: opacity 0.3s ease; }
         .error-msg.show { opacity: 1; }
         
@@ -114,8 +84,7 @@
         .photo-item {
             background: #fff; border-radius: 1.5rem; padding: 0.8rem;
             box-shadow: 0 15px 30px -10px rgba(0, 20, 40, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
-            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden;
-            min-height: 200px;
+            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden; min-height: 200px;
         }
         .photo-item img { width: 100%; height: auto; border-radius: 1rem; display: block; object-fit: cover; background: #eaf0f6; }
         @keyframes imgFadeIn { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
@@ -142,6 +111,11 @@
         .page-jump input:focus { border-color: #183e5c; }
         
         .loading-status { font-size: 1rem; color: #607d8b; font-weight: 600; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.5); border-radius: 1rem; }
+        .retry-btn {
+            background: #d32f2f; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 50px;
+            font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.3s;
+        }
+        .retry-btn:hover { background: #b71c1c; transform: scale(1.05); }
         
         @media (max-width: 480px) {
             .photo-card { padding: 3rem 1.5rem; border-radius: 2rem; }
@@ -155,11 +129,7 @@
     </style>
 </head>
 <body>
-    <!-- 私密相册入口 -->
-    <a href="private album.html" class="top-left-link">
-        私密相册
-    </a>
-
+    <a href="private album.html" class="top-left-link">私密相册</a>
     <div class="bg-orb orb-1"></div>
     <div class="bg-orb orb-2"></div>
 
@@ -176,9 +146,7 @@
 
         <div class="content-section" id="content-section">
             <div class="page-title">🎉 验证成功 🎉</div>
-            
             <div class="gallery-container" id="gallery-container"></div>
-
             <div class="pagination-controls" id="pagination-controls" style="display: none;">
                 <button class="page-btn" id="prev-btn">上一页</button>
                 <div class="page-jump">
@@ -190,11 +158,310 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // ... (保留原有的照片逻辑代码即可，无需改动) ...
-            // 为了节省您的阅读时间，此处省略 photo.html 原本的 JS 部分，完全和上一版一样。
-            // 只要确保 HTML 部分加上了左上角的 <a> 标签即可。
+        // ==========================================
+        // 纯原生 SHA256 算法实现（不依赖任何网络 CDN）
+        // ==========================================
+        function sha256(ascii) {
+            function rightRotate(value, amount) {
+                return (value>>>amount) | (value<<(32-amount));
+            };
+            var mathPow = Math.pow;
+            var maxWord = mathPow(2, 32);
+            var lengthProperty = 'length';
+            var i, j;
+            var result = '';
+            var words = [];
+            var asciiBitLength = ascii[lengthProperty] * 8;
+            var hash = sha256.h = sha256.h || [];
+            var k = sha256.k = sha256.k || [];
+            var primeCounter = k[lengthProperty];
+            var isComposite = {};
+            for (var candidate = 2; primeCounter < 64; candidate++) {
+                if (!isComposite[candidate]) {
+                    for (i = 0; i < 313; i += candidate) {
+                        isComposite[i] = candidate;
+                    }
+                    hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+                    k[primeCounter++] = (mathPow(candidate, 1/3) * maxWord) | 0;
+                }
+            }
+            ascii += '\x80';
+            while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
+            for (i = 0; i < ascii[lengthProperty]; i++) {
+                j = ascii.charCodeAt(i);
+                if (j >> 8) return;
+                words[i >> 2] |= j << ((3 - i) % 4) * 8;
+            }
+            words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
+            words[words[lengthProperty]] = (asciiBitLength);
+            for (j = 0; j < words[lengthProperty];) {
+                var w = words.slice(j, j += 16);
+                var oldHash = hash;
+                hash = hash.slice(0, 8);
+                for (i = 0; i < 64; i++) {
+                    var w15 = w[i - 15], w2 = w[i - 2];
+                    var a = hash[0], e = hash[4];
+                    var temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] + (w[i] = (i < 16) ? w[i] : (
+                        w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15>>>3)) + w[i - 7] + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2>>>10))
+                    ) | 0);
+                    var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+                    hash = [(temp1 + temp2) | 0].concat(hash);
+                    hash[4] = (hash[4] + temp1) | 0;
+                }
+                for (i = 0; i < 8; i++) {
+                    hash[i] = (hash[i] + oldHash[i]) | 0;
+                }
+            }
+            for (i = 0; i < 8; i++) {
+                for (j = 3; j + 1; j--) {
+                    var b = (hash[i] >> (j * 8)) & 255;
+                    result += ((b < 16) ? 0 : '') + b.toString(16);
+                }
+            }
+            return result;
+        }
+        // ==========================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
         });
+
+        function initApp() {
+            const form = document.getElementById('password-form');
+            const input = document.getElementById('password-input');
+            const errorMsg = document.getElementById('error-msg');
+            const verifySection = document.getElementById('verify-section');
+            const contentSection = document.getElementById('content-section');
+            const submitBtn = document.getElementById('submit-btn');
+            const statusMsg = document.getElementById('status-msg');
+            const questionTitle = document.getElementById('question-title');
+            
+            const galleryContainer = document.getElementById('gallery-container');
+            const paginationControls = document.getElementById('pagination-controls');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const pageInput = document.getElementById('page-input');
+            const totalPagesSpan = document.getElementById('total-pages');
+
+            let hash1 = null, hash2 = null, currentHashToCheck = null, currentQuestionIndex = 0;
+            const questions = [
+                "谁是世界上最温柔最善良的老师呀<br>（用上海话回答）",
+                "蛋糕大王是谁呀<br>（名字缩写）"
+            ];
+
+            const IMAGES_PER_PAGE = 5;
+            let totalImagesCount = 0; 
+            let currentPage = 1;
+            let totalPages = 1;
+            let isScanningDone = false;
+
+            async function initPassword() {
+                // 如果 3 秒后还没加载出来，强制报错，不卡界面
+                const timeoutUI = setTimeout(() => {
+                    if (submitBtn.disabled) {
+                        questionTitle.textContent = "加载超时";
+                        statusMsg.innerHTML = `网络请求超时<br><span style="font-size:0.8rem; opacity:0.8;">请检查 password 文件是否上传，路径是否正确</span><br><button class="retry-btn" onclick="location.reload()">点此重试</button>`;
+                        statusMsg.style.color = "#d32f2f";
+                    }
+                }, 3000);
+
+                try {
+                    // 纯本地路径，防止被当作追踪器拦截
+                    const response = await fetch('./password', { cache: 'no-store' });
+                    
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const text = await response.text();
+                    const lines = text.split(/\r?\n/).map(line => line.replace(/^\uFEFF/, '').trim()).filter(line => line.length > 0);
+                    
+                    if (lines.length < 2) throw new Error('密码文件配置不完整');
+                    
+                    hash1 = lines[0];
+                    hash2 = lines[1];
+
+                    currentQuestionIndex = Math.random() < 0.5 ? 0 : 1;
+                    questionTitle.innerHTML = questions[currentQuestionIndex];
+                    currentHashToCheck = currentQuestionIndex === 0 ? hash1 : hash2;
+
+                    clearTimeout(timeoutUI);
+                    statusMsg.style.display = 'none';
+                    submitBtn.disabled = false;
+                } catch (err) {
+                    clearTimeout(timeoutUI);
+                    console.error("读取密码失败:", err);
+                    questionTitle.textContent = "加载失败";
+                    statusMsg.innerHTML = `无法加载密码配置 (${err.message})<br><span style="font-size:0.8rem; opacity:0.8;">请检查根目录下是否有 password 文件</span><br><button class="retry-btn" onclick="location.reload()">点此重试</button>`;
+                    statusMsg.style.color = "#d32f2f";
+                }
+            }
+
+            initPassword();
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (currentHashToCheck) validatePassword();
+            });
+
+            function validatePassword() {
+                let answer = input.value.trim();
+                if (!answer) return showError("请输入答案哦~");
+
+                if (currentQuestionIndex === 1) answer = answer.toLowerCase();
+                
+                // 调用本地的 sha256 函数
+                const inputHash = sha256(answer);
+
+                if (inputHash.toLowerCase() === currentHashToCheck.toLowerCase()) {
+                    verifySection.style.display = 'none';
+                    contentSection.classList.add('active');
+                    input.value = '';
+                    errorMsg.classList.remove('show');
+                    
+                    document.title = "美妙照片";
+                    
+                    currentPage = 1;
+                    renderPage(); 
+                    backgroundScanTotalCount();
+                } else {
+                    showError("回答不正确哦，再想想~");
+                    input.value = '';
+                    input.focus();
+                }
+            }
+
+            function showError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.classList.add('show');
+                setTimeout(() => { errorMsg.classList.remove('show'); }, 2000);
+            }
+
+            function renderPage() {
+                galleryContainer.innerHTML = '';
+                const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
+                
+                const startIndex = (currentPage - 1) * IMAGES_PER_PAGE + 1;
+                const endIndex = startIndex + IMAGES_PER_PAGE - 1;
+
+                for (let i = startIndex; i <= endIndex; i++) {
+                    createImageItem(i, extensions);
+                }
+                
+                updatePaginationUI();
+            }
+
+            async function createImageItem(index, extensions) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'photo-item';
+                wrapper.style.animationDelay = `${(index % 5) * 0.1}s`;
+                
+                const imgEl = document.createElement('img');
+                imgEl.alt = `照片 ${index}`;
+                imgEl.loading = 'lazy';
+                wrapper.appendChild(imgEl);
+                galleryContainer.appendChild(wrapper);
+
+                for (let ext of extensions) {
+                    const imgSrc = `./photo/${index}.${ext}`;
+                    const success = await probeImage(imgSrc);
+                    if (success) {
+                        imgEl.src = imgSrc;
+                        return;
+                    }
+                }
+                
+                wrapper.style.display = 'none';
+            }
+
+            function probeImage(url) {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve(true);
+                    img.onerror = () => resolve(false);
+                    img.src = url;
+                });
+            }
+
+            async function backgroundScanTotalCount() {
+                const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
+                let consecutiveMisses = 0;
+                let index = 1;
+                const MAX_SCAN = 100; 
+
+                while (index <= MAX_SCAN) {
+                    let found = false;
+                    for (let ext of extensions) {
+                        const url = `./photo/${index}.${ext}`;
+                        if (await probeImage(url)) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (found) {
+                        consecutiveMisses = 0;
+                        totalImagesCount = index; 
+                    } else {
+                        consecutiveMisses++;
+                        if (consecutiveMisses >= 3) break; 
+                    }
+                    index++;
+                    
+                    await new Promise(r => setTimeout(r, 50)); 
+                }
+
+                isScanningDone = true;
+                totalPages = Math.ceil(totalImagesCount / IMAGES_PER_PAGE) || 1;
+                
+                totalPagesSpan.textContent = totalPages;
+                pageInput.max = totalPages;
+                
+                if (totalPages > 1) {
+                    paginationControls.style.display = 'flex';
+                }
+                updatePaginationUI();
+            }
+
+            function updatePaginationUI() {
+                prevBtn.disabled = currentPage === 1;
+                nextBtn.disabled = isScanningDone ? (currentPage >= totalPages) : false;
+                pageInput.value = currentPage;
+            }
+
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPage();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+
+            nextBtn.addEventListener('click', () => {
+                currentPage++;
+                renderPage();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            pageInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (isNaN(val) || val < 1) val = 1;
+                if (isScanningDone && val > totalPages) val = totalPages;
+                
+                if (val !== currentPage) {
+                    currentPage = val;
+                    renderPage();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    e.target.value = currentPage;
+                }
+            });
+
+            pageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    pageInput.blur();
+                }
+            });
+        }
     </script>
 </body>
 </html>
