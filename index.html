@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>包头中学2027届3班</title>
+    <link rel="icon" href="ciallo.png" type="image/png">
+    <style>
+        /* ---------- 基础重置 ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f4f7fb;
+            padding: 1.5rem;
+            text-align: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ---------- 左上角超链接 (沅神开播了) ---------- */
+        .top-left-link {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            z-index: 10;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #183e5c;
+            text-decoration: underline;
+            text-decoration-color: currentColor;
+            text-underline-offset: 4px;
+            text-decoration-thickness: 2px;
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 20, 40, 0.08);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            letter-spacing: 0.05em;
+        }
+
+        .top-left-link:hover {
+            background: #183e5c;
+            color: #ffffff;
+            text-decoration-color: #ffffff;
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 10px 25px rgba(20, 45, 70, 0.3);
+        }
+
+        .top-left-link:active {
+            transform: translateY(1px) scale(0.98);
+            box-shadow: 0 2px 8px rgba(0, 20, 40, 0.2);
+        }
+
+        @media (max-width: 480px) {
+            .top-left-link {
+                top: 1rem;
+                left: 1rem;
+                font-size: 0.85rem;
+                padding: 0.5rem 1rem;
+                text-underline-offset: 3px;
+                text-decoration-thickness: 1.5px;
+            }
+        }
+
+        /* ---------- 卡片容器 ---------- */
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 3rem;
+            padding: 4.5rem 3rem;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15),
+                        0 6px 18px rgba(0, 0, 0, 0.05),
+                        inset 0 1px 4px rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+
+            /* 入场动画 */
+            animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes cardEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(40px) scale(0.96);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ---------- 彩虹波浪大字 ---------- */
+        .welcome-text {
+            font-size: clamp(1.8rem, 6vw, 4.5rem); /* 稍微调小一点上限，保证长文字在一行或完美换行 */
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            line-height: 1.3;
+            margin-bottom: 3.5rem;
+            word-break: break-word;
+            
+            /* 使用 flex 居中，并允许换行 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            
+            /* 整体入场动画 */
+            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+
+        @keyframes textEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(24px) scale(0.94);
+                filter: blur(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        /* 为文字中的每个字加上动画和彩虹色 */
+        .welcome-text span {
+            display: inline-block;
+            /* 彩虹渐变文字 */
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+            background-size: 700% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            -webkit-text-fill-color: transparent;
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.9); /* 加一点白色描边，增加立体感 */
+            
+            /* 动画：颜色流动 + 3D翻转起伏 */
+            animation: rainbowFlow 4s linear infinite, mcFloat 2.5s ease-in-out infinite alternate;
+        }
+
+        /* 颜色流动动画 */
+        @keyframes rainbowFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        /* 类似 Minecraft 的旋转/浮动（利用 3D 旋转营造立体感） */
+        @keyframes mcFloat {
+            0% { 
+                transform: translateY(0) rotateX(0deg) rotateY(0deg) scale(1); 
+                text-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            50% { 
+                transform: translateY(-8px) rotateX(10deg) rotateY(5deg) scale(1.05); 
+                text-shadow: 0 12px 15px rgba(0,0,0,0.15);
+            }
+            100% { 
+                transform: translateY(0) rotateX(0deg) rotateY(0deg) scale(1); 
+                text-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+        }
+
+        /* 错开每个字的动画时间，形成波浪效果 */
+        /* 通过设置不同的 animation-delay 实现 */
+        .welcome-text span:nth-child(1)  { animation-delay: 0s, 0s; }
+        .welcome-text span:nth-child(2)  { animation-delay: 0.1s, 0.05s; }
+        .welcome-text span:nth-child(3)  { animation-delay: 0.2s, 0.1s; }
+        .welcome-text span:nth-child(4)  { animation-delay: 0.3s, 0.15s; }
+        .welcome-text span:nth-child(5)  { animation-delay: 0.4s, 0.2s; }
+        .welcome-text span:nth-child(6)  { animation-delay: 0.5s, 0.25s; }
+        .welcome-text span:nth-child(7)  { animation-delay: 0.6s, 0.3s; }
+        .welcome-text span:nth-child(8)  { animation-delay: 0.7s, 0.35s; }
+        .welcome-text span:nth-child(9)  { animation-delay: 0.8s, 0.4s; }
+        .welcome-text span:nth-child(10) { animation-delay: 0.9s, 0.45s; }
+        .welcome-text span:nth-child(11) { animation-delay: 1.0s, 0.5s; }
+        .welcome-text span:nth-child(12) { animation-delay: 1.1s, 0.55s; }
+        .welcome-text span:nth-child(13) { animation-delay: 1.2s, 0.6s; }
+        .welcome-text span:nth-child(14) { animation-delay: 1.3s, 0.65s; }
+        .welcome-text span:nth-child(15) { animation-delay: 1.4s, 0.7s; }
+        .welcome-text span:nth-child(16) { animation-delay: 1.5s, 0.75s; }
+        .welcome-text span:nth-child(17) { animation-delay: 1.6s, 0.8s; }
+        .welcome-text span:nth-child(18) { animation-delay: 1.7s, 0.85s; }
+        .welcome-text span:nth-child(19) { animation-delay: 1.8s, 0.9s; }
+        .welcome-text span:nth-child(20) { animation-delay: 1.9s, 0.95s; }
+
+        /* ---------- 按钮 ---------- */
+        .go-button {
+            display: inline-block;
+            background: #183e5c;
+            color: white;
+            font-size: clamp(1.6rem, 5vw, 2.4rem);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            padding: 1.1rem 3.8rem;
+            border-radius: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+            background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
+            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5),
+                        0 8px 12px -4px rgba(0, 0, 0, 0.15),
+                        inset 0 -3px 0 rgba(0, 0, 0, 0.15);
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        box-shadow 0.3s ease,
+                        letter-spacing 0.3s ease,
+                        background-image 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+
+            /* 入场 + 呼吸光效 */
+            animation: btnEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both,
+                       breathe 3.2s ease-in-out 1.4s infinite;
+        }
+
+        @keyframes btnEnter {
+            0% {
+                opacity: 0;
+                transform: translateY(28px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes breathe {
+            0%, 100% {
+                box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5),
+                            0 8px 12px -4px rgba(0, 0, 0, 0.15),
+                            inset 0 -3px 0 rgba(0, 0, 0, 0.15);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 26px 40px -8px rgba(40, 90, 140, 0.6),
+                            0 10px 16px -6px rgba(0, 0, 0, 0.2),
+                            inset 0 -3px 0 rgba(0, 0, 0, 0.12);
+                transform: scale(1.02);
+            }
+        }
+
+        /* 悬停 */
+        .go-button:hover {
+            animation-play-state: paused, paused;
+            background: #0c2338;
+            background-image: linear-gradient(145deg, #1d4468, #0a1f30);
+            box-shadow: 0 30px 45px -14px rgba(10, 30, 50, 0.7),
+                        0 12px 20px -6px rgba(0, 0, 0, 0.25),
+                        inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+            transform: translateY(-8px) scale(1.03);
+            letter-spacing: 0.09em;
+        }
+
+        /* 按下 */
+        .go-button:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 8px 15px -5px rgba(0, 20, 40, 0.6),
+                        inset 0 6px 12px rgba(0, 0, 0, 0.35);
+            background-image: linear-gradient(145deg, #122b40, #071a28);
+            transition: transform 0.06s, box-shadow 0.06s, background-image 0.06s;
+        }
+
+        .go-button:focus-visible {
+            outline: 4px solid #96c0e6;
+            outline-offset: 6px;
+        }
+
+        .go-button::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 100px;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+        }
+
+        .go-button:hover::before {
+            opacity: 1;
+        }
+
+        /* ---------- 背景装饰光斑 ---------- */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(70px);
+            opacity: 0.2;
+            z-index: 0;
+            pointer-events: none;
+            animation: orbDrift 18s infinite alternate ease-in-out;
+        }
+
+        .orb-1 {
+            width: 340px;
+            height: 340px;
+            background: #7aa9da;
+            top: -100px;
+            left: -120px;
+            animation-duration: 22s;
+        }
+
+        .orb-2 {
+            width: 420px;
+            height: 420px;
+            background: #b2cfe8;
+            bottom: -150px;
+            right: -130px;
+            animation-duration: 26s;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 280px;
+            height: 280px;
+            background: #d0e2f2;
+            top: 40%;
+            right: 2%;
+            animation-duration: 19s;
+            animation-delay: -10s;
+            opacity: 0.15;
+        }
+
+        @keyframes orbDrift {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -25px) scale(1.08); }
+            100% { transform: translate(-20px, 20px) scale(0.96); }
+        }
+
+        /* 小屏优化 */
+        @media (max-width: 480px) {
+            .welcome-card {
+                padding: 3rem 1.5rem;
+                border-radius: 2rem;
+            }
+            .welcome-text {
+                font-size: clamp(1.6rem, 8vw, 2.5rem);
+                margin-bottom: 2.5rem;
+            }
+            .go-button {
+                padding: 0.9rem 2.5rem;
+                font-size: 1.5rem;
+            }
+        }
+
+        /* 尊重减少动效偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 左上角超链接 -->
+    <a href="yskbl.html" class="top-left-link">
+        沅神开播了
+    </a>
+
+    <!-- 背景光斑 -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <div class="welcome-card">
+        <!-- 文字由 JS 动态拆分为单字，以便实现波浪效果 -->
+        <div class="welcome-text" id="welcome-text">
+            上海市包头中学2027届3班
+        </div>
+
+        <!-- 按钮保持不变 -->
+        <a href="content.html" class="go-button" role="button">Let's go!!!</a>
+    </div>
+
+    <script>
+        // 将文字拆分为单个字符，方便单独控制动画延迟，实现 Minecraft 波浪效果
+        document.addEventListener("DOMContentLoaded", () => {
+            const textElement = document.getElementById('welcome-text');
+            const text = textElement.textContent.trim();
+            
+            // 清空原有内容并重新插入 span 标签
+            textElement.innerHTML = '';
+            for (let i = 0; i < text.length; i++) {
+                const span = document.createElement('span');
+                span.textContent = text[i];
+                // 针对空格特殊处理，保持占位
+                if (text[i] === ' ') {
+                    span.style.width = '0.5em';
+                }
+                textElement.appendChild(span);
+            }
+        });
+    </script>
+</body>
+</html>
