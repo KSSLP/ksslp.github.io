@@ -1,130 +1,154 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>照片 - 密码验证</title>
-    <!-- 去掉了外部 CDN 链接，算法直接内置，绝对不会因为网络卡住 -->
+    <title>私密相册</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f4f7fb;
-            padding: 1.5rem;
-            text-align: center;
-            overflow-x: hidden;
-            position: relative;
+        :root {
+            --ink: #1a2b49;
+            --ink-soft: #55637c;
+            --accent-1: #5b8def;
+            --accent-2: #8f7bf0;
+            --paper: rgba(255, 255, 255, 0.72);
+            --line: rgba(0, 20, 40, 0.08);
         }
+        * { box-sizing: border-box; }
+        html, body { min-height: 100%; }
+        body {
+            margin: 0; padding: 2rem 1rem 3rem;
+            font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: linear-gradient(160deg, #eef4ff 0%, #f7f2ff 45%, #f2fbff 100%);
+            overflow-x: hidden;
+        }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background:
+                radial-gradient(circle at 12% 18%, rgba(91, 141, 239, 0.16), transparent 42%),
+                radial-gradient(circle at 88% 12%, rgba(143, 123, 240, 0.16), transparent 44%),
+                radial-gradient(circle at 50% 92%, rgba(94, 209, 195, 0.14), transparent 46%);
+        }
+        @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
+        .bg-orb {
+            position: fixed; z-index: -1; border-radius: 50%; pointer-events: none;
+            filter: blur(40px); opacity: 0.55; animation: orbDrift 18s ease-in-out infinite alternate;
+        }
+        .orb-1 { width: 320px; height: 320px; top: -80px; left: -80px; background: radial-gradient(circle, rgba(91, 141, 239, 0.55), transparent 70%); }
+        .orb-2 { width: 380px; height: 380px; bottom: -120px; right: -100px; background: radial-gradient(circle, rgba(143, 123, 240, 0.5), transparent 70%); animation-delay: -6s; }
 
         .top-left-link {
-            position: fixed; top: 1.5rem; left: 1.5rem; z-index: 10;
-            font-size: 1rem; font-weight: 600; color: #183e5c;
-            text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 4px; text-decoration-thickness: 2px;
-            padding: 0.6rem 1.2rem; background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-            border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 15px rgba(0, 20, 40, 0.08);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); letter-spacing: 0.05em;
+            position: fixed; top: 1rem; left: 1rem; z-index: 10;
+            padding: 0.5rem 0.95rem; border-radius: 999px;
+            font-size: 0.85rem; letter-spacing: 0.02em; text-decoration: none; color: var(--ink-soft);
+            background: rgba(255, 255, 255, 0.7); border: 1px solid var(--line);
+            box-shadow: 0 6px 18px -12px rgba(0, 20, 40, 0.5);
+            -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+            transition: color 0.25s ease, background 0.25s ease;
         }
-        .top-left-link:hover {
-            background: #183e5c; color: #ffffff; text-decoration-color: #ffffff;
-            transform: translateY(-3px) scale(1.03); box-shadow: 0 10px 25px rgba(20, 45, 70, 0.3);
-        }
+        .top-left-link:hover { color: var(--ink); background: #fff; }
 
-        .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
-        .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
-        .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
-        @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
-        
         .photo-card {
-            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            border-radius: 3rem; padding: 4.5rem 3rem; max-width: 900px; width: 100%;
-            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15), 0 6px 18px rgba(0, 0, 0, 0.05), inset 0 1px 4px rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.9); position: relative; z-index: 2; animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+            width: 100%; max-width: 880px; margin: 0 auto; padding: 3.5rem 3rem 3rem;
+            background: var(--paper); border-radius: 2.5rem; border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 30px 60px -30px rgba(0, 20, 40, 0.35), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+            animation: cardEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         @keyframes cardEnter { 0% { opacity: 0; transform: translateY(40px) scale(0.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        
+
         .page-title {
-            font-size: clamp(1.8rem, 6vw, 3.5rem); font-weight: 800; letter-spacing: 0.02em; line-height: 1.4;
-            color: #162b3c; text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06); margin-bottom: 2rem; word-break: break-word;
-            animation: textEnter 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+            margin: 0 0 1.5rem; font-size: clamp(1.5rem, 4.2vw, 2.2rem); font-weight: 700;
+            line-height: 1.45; letter-spacing: 0.02em;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            animation: textEnter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         @keyframes textEnter { 0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
-        
-        .password-form { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 400px; margin: 0 auto; animation: fadeIn 1s ease 0.5s both; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
+
+        #verify-section { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .password-form { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
         .password-input {
-            width: 100%; padding: 1rem 1.5rem; font-size: 1.2rem; border-radius: 100px; border: 2px solid rgba(24, 62, 92, 0.2);
-            background: rgba(255, 255, 255, 0.9); outline: none; transition: all 0.3s ease; color: #162b3c; font-weight: 600; text-align: center;
+            width: 100%; padding: 1rem 1.3rem; font-size: 1.15rem; color: var(--ink);
+            background: rgba(255, 255, 255, 0.85); border: 1px solid var(--line); border-radius: 999px;
+            outline: none; text-align: center;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
         }
-        .password-input:focus { border-color: #183e5c; box-shadow: 0 0 0 4px rgba(24, 62, 92, 0.15); }
-        
-        .submit-btn {
-            display: inline-block; background: #183e5c; color: white; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; padding: 1rem 3rem;
-            border-radius: 100px; border: 1px solid rgba(255, 255, 255, 0.2); cursor: pointer; background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
-            box-shadow: 0 18px 30px -10px rgba(20, 45, 70, 0.5), 0 8px 12px -4px rgba(0, 0, 0, 0.15); transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .submit-btn:hover:not(:disabled) { background-image: linear-gradient(145deg, #1d4468, #0a1f30); transform: translateY(-3px) scale(1.02); }
-        .submit-btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
-        .submit-btn:disabled { background: #a0aec0; cursor: not-allowed; opacity: 0.7; box-shadow: none; }
-        
-        .error-msg { color: #d32f2f; font-size: 0.95rem; font-weight: 600; min-height: 1.2rem; opacity: 0; transition: opacity 0.3s ease; }
+        .password-input:focus { border-color: rgba(91, 141, 239, 0.6); box-shadow: 0 0 0 4px rgba(91, 141, 239, 0.14); }
+        .error-msg { min-height: 1.2em; font-size: 0.9rem; color: #d64545; opacity: 0; transition: opacity 0.25s ease; }
         .error-msg.show { opacity: 1; }
-        
-        .content-section { display: none; animation: fadeIn 0.8s ease both; width: 100%; }
-        .content-section.active { display: block; }
-        
+        .submit-btn {
+            padding: 0.9rem 2.4rem; font-size: 1.05rem; font-weight: 600; color: #fff; cursor: pointer;
+            border: none; border-radius: 999px;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 14px 26px -14px rgba(91, 141, 239, 0.9);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+        .submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 18px 30px -14px rgba(91, 141, 239, 0.95); }
+        .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .status-msg { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.7; }
+        .retry-btn {
+            margin-top: 0.5rem; padding: 0.4rem 1.1rem; font-size: 0.85rem; cursor: pointer;
+            color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 999px;
+        }
+
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.6s ease both; }
+
         .gallery-container { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; max-width: 800px; margin: 0 auto 2rem; }
         .photo-item {
             background: #fff; border-radius: 1.5rem; padding: 0.8rem;
             box-shadow: 0 15px 30px -10px rgba(0, 20, 40, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
-            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden; min-height: 200px;
+            animation: imgFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; overflow: hidden;
         }
-        .photo-item img { width: 100%; height: auto; border-radius: 1rem; display: block; object-fit: cover; background: #eaf0f6; }
+        .photo-item img { width: 100%; height: auto; border-radius: 1rem; display: block; background: #eaf0f6; }
+        .photo-item .img-loaded { animation: imgFadeIn 0.5s ease both; }
         @keyframes imgFadeIn { 0% { opacity: 0; transform: translateY(20px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        
+
+        .photo-placeholder {
+            width: 100%; aspect-ratio: 4 / 3; border-radius: 1rem;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem;
+            background: linear-gradient(135deg, #eef3fb, #f5f1fd);
+        }
+        .shimmer {
+            width: 60%; height: 0.8rem; border-radius: 999px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(255, 255, 255, 0) 100%), #e2e9f5;
+            background-size: 200% 100%; animation: shimmer 1.25s linear infinite;
+        }
+        @keyframes shimmer { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+        .spinner {
+            width: 2rem; height: 2rem; border-radius: 50%;
+            border: 3px solid rgba(91, 141, 239, 0.2); border-top-color: var(--accent-1);
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .item-failed { padding: 2.5rem 1rem; text-align: center; font-size: 0.9rem; color: var(--ink-soft); }
+
         .pagination-controls {
             display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap;
             margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
         .page-btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            background: #e0e8f0; color: #183e5c; font-size: 1rem; font-weight: 700;
-            padding: 0.6rem 1.5rem; border-radius: 100px; border: none; cursor: pointer; transition: all 0.3s ease; text-decoration: none;
+            padding: 0.6rem 1.4rem; font-size: 0.95rem; cursor: pointer; color: var(--ink);
+            background: #fff; border: 1px solid var(--line); border-radius: 999px;
+            transition: background 0.2s ease, opacity 0.2s ease;
         }
-        .page-btn:hover:not(:disabled) { background: #183e5c; color: white; transform: translateY(-2px); }
+        .page-btn:hover:not(:disabled) { background: #f3f7ff; }
         .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .page-jump {
-            display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 600; color: #607d8b;
-            background: rgba(255, 255, 255, 0.6); padding: 0.4rem 0.8rem; border-radius: 50px; border: 1px solid rgba(0, 0, 0, 0.05);
-        }
+        .page-jump { font-size: 0.95rem; color: var(--ink-soft); }
         .page-jump input {
-            width: 50px; padding: 0.4rem; border: 2px solid rgba(24, 62, 92, 0.15); border-radius: 8px; text-align: center;
-            font-size: 1rem; font-weight: 700; color: #183e5c; outline: none; transition: border-color 0.2s;
+            width: 4.5rem; padding: 0.4rem 0.6rem; margin: 0 0.25rem; text-align: center;
+            font-size: 0.95rem; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 0.7rem; outline: none;
         }
-        .page-jump input:focus { border-color: #183e5c; }
-        
-        .loading-status { font-size: 1rem; color: #607d8b; font-weight: 600; margin: 1rem 0; padding: 1rem; background: rgba(255,255,255,0.5); border-radius: 1rem; }
-        .retry-btn {
-            background: #d32f2f; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 50px;
-            font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.3s;
-        }
-        .retry-btn:hover { background: #b71c1c; transform: scale(1.05); }
-        
+        .loading-more { text-align: center; font-size: 0.85rem; color: var(--ink-soft); padding: 0.5rem 0 1rem; }
+
         @media (max-width: 480px) {
             .photo-card { padding: 3rem 1.5rem; border-radius: 2rem; }
             .page-title { font-size: clamp(1.4rem, 6vw, 2rem); }
             .password-input { padding: 0.9rem 1.2rem; font-size: 1.1rem; }
             .submit-btn { font-size: 1.1rem; padding: 0.9rem 2rem; }
             .gallery-container { gap: 1rem; }
-            .pagination-controls { gap: 0.5rem; }
-            .page-btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -147,6 +171,7 @@
         <div class="content-section" id="content-section">
             <div class="page-title">🎉 验证成功 🎉</div>
             <div class="gallery-container" id="gallery-container"></div>
+            <div class="loading-more" id="loading-more" style="display: none;">相册还在加载中…</div>
             <div class="pagination-controls" id="pagination-controls" style="display: none;">
                 <button class="page-btn" id="prev-btn">上一页</button>
                 <div class="page-jump">
@@ -242,6 +267,7 @@
             const nextBtn = document.getElementById('next-btn');
             const pageInput = document.getElementById('page-input');
             const totalPagesSpan = document.getElementById('total-pages');
+            const loadingMore = document.getElementById('loading-more');
 
             let hash1 = null, hash2 = null, currentHashToCheck = null, currentQuestionIndex = 0;
             const questions = [
@@ -249,11 +275,24 @@
                 "蛋糕大王是谁呀<br>（名字缩写）"
             ];
 
+            const EXTENSIONS = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
             const IMAGES_PER_PAGE = 5;
-            let totalImagesCount = 0; 
+            const MAX_SCAN = 100;       // 最多探测到第几张
+            const MAX_MISSES = 3;       // 连续这么多次探测不到就认为到底了
+            const GUESS_AHEAD = 1;      // 扫描进度之后还能额外往后翻的页数（“下一页”切换时临时放开）
+
+            // 相册状态
+            let indexedCount = 0;       // 已确认存在的照片，编号连续：1 .. indexedCount
+            let indexedPages = 0;       // 已确认的完整页数
+            let scanDone = false;       // 是否已经扫到底
+
+            const pageCache = new Map(); // 页码 -> PageSlot
+
             let currentPage = 1;
-            let totalPages = 1;
-            let isScanningDone = false;
+            let currentRenderToken = 0;
+            let wantedPage = 1;          // 扫描位当前正在为哪一页找图
+            let forceTarget = 0;         // “下一页”请求的页（允许提前探测）
+            let lastAdvanceAt = 0;
 
             async function initPassword() {
                 // 如果 3 秒后还没加载出来，强制报错，不卡界面
@@ -320,8 +359,8 @@
                     document.title = "美妙照片";
                     
                     currentPage = 1;
-                    renderPage(); 
-                    backgroundScanTotalCount();
+                    renderPage();
+                    scanLoop();
                 } else {
                     showError("回答不正确哦，再想想~");
                     input.value = '';
@@ -335,41 +374,139 @@
                 setTimeout(() => { errorMsg.classList.remove('show'); }, 2000);
             }
 
-            function renderPage() {
-                galleryContainer.innerHTML = '';
-                const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
-                
-                const startIndex = (currentPage - 1) * IMAGES_PER_PAGE + 1;
-                const endIndex = startIndex + IMAGES_PER_PAGE - 1;
+            // ---------- 页面渲染 ----------
 
-                for (let i = startIndex; i <= endIndex; i++) {
-                    createImageItem(i, extensions);
-                }
-                
-                updatePaginationUI();
+            // 可用页数：扫到底之前可以多翻一点（边扫边翻），扫到底后就是确认的页数
+            function navLimit() {
+                if (scanDone) return Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE));
+                return Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE) + 1);
             }
 
-            async function createImageItem(index, extensions) {
+            function renderPage() {
+                const page = currentPage;
+                const slot = getSlot(page);
+                const startIndex = (page - 1) * IMAGES_PER_PAGE + 1;
+
+                currentRenderToken++;
+                galleryContainer.innerHTML = '';
+
+                for (let i = startIndex; i < startIndex + IMAGES_PER_PAGE; i++) {
+                    if (slot.failed.has(i)) continue;
+                    if (slot.loaded.has(i)) {
+                        galleryContainer.appendChild(buildLoadedItem(i, slot.loaded.get(i)));
+                    } else if (slot.started.has(i)) {
+                        galleryContainer.appendChild(slot.started.get(i));
+                    } else if (!slot.pending.has(i)) {
+                        addPendingIndex(slot, i);
+                    }
+                }
+
+                if (slot.failed.size && !slot.loaded.size && !slot.pending.size) {
+                    const box = document.createElement('div');
+                    box.className = 'photo-item item-failed';
+                    box.textContent = '这一页暂时没有照片';
+                    galleryContainer.appendChild(box);
+                }
+
+                updatePaginationUI();
+                updateLoadingMore();
+            }
+
+            function getSlot(page) {
+                let slot = pageCache.get(page);
+                if (!slot) {
+                    slot = { pending: new Set(), started: new Map(), loaded: new Map(), failed: new Set(), scanning: false };
+                    pageCache.set(page, slot);
+                }
+                return slot;
+            }
+
+            function addPendingIndex(slot, index) {
+                let ph = slot.started.get(index);
+                if (ph) return ph;
+                ph = buildPlaceholder(index);
+                slot.started.set(index, ph);
+                slot.pending.add(index);
+                if (isPageOnScreen(slot)) galleryContainer.appendChild(ph);
+                return ph;
+            }
+
+            function isPageOnScreen(slot) {
+                return pageCache.get(currentPage) === slot;
+            }
+
+            function buildPlaceholder(index) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'photo-item';
                 wrapper.style.animationDelay = `${(index % 5) * 0.1}s`;
-                
+                wrapper.innerHTML = '<div class="photo-placeholder"><div class="shimmer"></div><div class="shimmer" style="width:40%"></div><div class="spinner"></div></div>';
+                return wrapper;
+            }
+
+            function resolveSlotIndex(slot, index, url) {
+                slot.pending.delete(index);
+                if (slot.loaded.has(index)) return;
+                const ph = slot.started.get(index);
+                if (url) {
+                    slot.loaded.set(index, url);
+                    const item = buildLoadedItem(index, url);
+                    if (ph && ph.parentNode) ph.parentNode.replaceChild(item, ph);
+                    else if (isPageOnScreen(slot)) galleryContainer.appendChild(item);
+                } else {
+                    slot.failed.add(index);
+                    if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
+                }
+                updateLoadingMore();
+            }
+
+            function buildLoadedItem(index, url) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'photo-item';
+                wrapper.style.animationDelay = `${(index % 5) * 0.1}s`;
+
                 const imgEl = document.createElement('img');
                 imgEl.alt = `照片 ${index}`;
-                imgEl.loading = 'lazy';
+                imgEl.className = 'img-loaded';
+                imgEl.decoding = 'async';
+                imgEl.src = url;
                 wrapper.appendChild(imgEl);
-                galleryContainer.appendChild(wrapper);
+                return wrapper;
+            }
 
-                for (let ext of extensions) {
-                    const imgSrc = `./photo/${index}.${ext}`;
-                    const success = await probeImage(imgSrc);
-                    if (success) {
-                        imgEl.src = imgSrc;
-                        return;
+            // 按顺序为某一页探测照片：探到一张就立刻替换占位图
+            async function scanPage(page) {
+                const slot = getSlot(page);
+                if (slot.scanning) return;
+                slot.scanning = true;
+                try {
+                    const start = (page - 1) * IMAGES_PER_PAGE + 1;
+                    for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
+                        if (i > MAX_SCAN) { slot.pending.delete(i); continue; }
+                        slot.pending.delete(i);
+                        const url = await findImage(i);
+                        slot.pending.add(i);
+                        if (url) {
+                            resolveSlotIndex(slot, i, url);
+                            indexedCount = Math.max(indexedCount, i);
+                            indexedPages = Math.floor(indexedCount / IMAGES_PER_PAGE);
+                            if (page === currentPage) advanceCurrentPage();
+                        } else {
+                            resolveSlotIndex(slot, i, null);
+                        }
+                        updateLoadingMore();
                     }
+                    updatePaginationUI();
+                } finally {
+                    slot.scanning = false;
                 }
-                
-                wrapper.style.display = 'none';
+            }
+
+            async function findImage(index) {
+                for (const ext of EXTENSIONS) {
+                    const url = `./photo/${index}.${ext}`;
+                    if (await probeImage(url)) return url;
+                }
+                return null;
             }
 
             function probeImage(url) {
@@ -381,78 +518,180 @@
                 });
             }
 
-            async function backgroundScanTotalCount() {
-                const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
-                let consecutiveMisses = 0;
+            // 后台顺序扫描：先扫当前页，扫完整页就提前去下一页找图，实现“边加载边换页”
+            async function scanLoop() {
+                let missStreak = 0;
                 let index = 1;
-                const MAX_SCAN = 100; 
 
                 while (index <= MAX_SCAN) {
-                    let found = false;
-                    for (let ext of extensions) {
-                        const url = `./photo/${index}.${ext}`;
-                        if (await probeImage(url)) {
-                            found = true;
+                    const page = Math.ceil(index / IMAGES_PER_PAGE);
+                    const start = (page - 1) * IMAGES_PER_PAGE + 1;
+                    const end = start + IMAGES_PER_PAGE - 1;
+                    const slot = getSlot(page);
+
+                    // 等真正需要这一页时再去探测，避免无意义地白扫
+                    while (!scanDone && page > wantedPage && page > forceTarget) {
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+
+                    // 这一页在开始扫描时就已经在缓存里了，不用再探测
+                    if (slot.loaded.has(index) || slot.failed.has(index)) {
+                        if (!slot.loaded.has(index)) missStreak++;
+                        index++;
+                        continue;
+                    }
+
+                    addPendingIndex(slot, index);
+
+                    const url = await findImage(index);
+
+                    if (url) {
+                        missStreak = 0;
+                        indexedCount = index;
+                        indexedPages = Math.floor(indexedCount / IMAGES_PER_PAGE);
+                        resolveSlotIndex(slot, index, url);
+                        pageCache.forEach((s, p) => {
+                            if (p * IMAGES_PER_PAGE < index && s.pending.has(index)) s.pending.delete(index);
+                        });
+                        if (page === currentPage) advanceCurrentPage();
+                    } else {
+                        missStreak++;
+                        resolveSlotIndex(slot, index, null);
+                        pageCache.forEach((s) => s.pending.delete(index));
+                        if (missStreak >= MAX_MISSES) {
+                            // 连续探测不到：到底了
+                            for (let i = index; i <= end; i++) {
+                                getSlot(page).pending.delete(i);
+                                getSlot(page).started.delete(i);
+                                getSlot(page).failed.delete(i);
+                            }
+                            scanDone = true;
+                            totalPages = Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE));
+                            totalPagesSpan.textContent = totalPages;
+                            pageInput.max = totalPages;
+                            if (totalPages > 1) paginationControls.style.display = 'flex';
                             break;
                         }
                     }
 
-                    if (found) {
-                        consecutiveMisses = 0;
-                        totalImagesCount = index; 
-                    } else {
-                        consecutiveMisses++;
-                        if (consecutiveMisses >= 3) break; 
-                    }
+                    updatePaginationUI();
+                    updateLoadingMore();
+
                     index++;
-                    
-                    await new Promise(r => setTimeout(r, 50)); 
+                    await new Promise(r => setTimeout(r, 50));
                 }
 
-                isScanningDone = true;
-                totalPages = Math.ceil(totalImagesCount / IMAGES_PER_PAGE) || 1;
-                
-                totalPagesSpan.textContent = totalPages;
-                pageInput.max = totalPages;
-                
-                if (totalPages > 1) {
-                    paginationControls.style.display = 'flex';
+                scanDone = true;
+                // 清掉越界页缓存
+                const maxKnownPage = Math.max(1, Math.ceil(Math.max(indexedCount, 1) / IMAGES_PER_PAGE));
+                pageCache.forEach((s, p) => { if (p > maxKnownPage + 1) pageCache.delete(p); });
+                if (currentPage > maxKnownPage) {
+                    currentPage = maxKnownPage;
+                    renderPage();
                 }
                 updatePaginationUI();
+                updateLoadingMore();
+            }
+
+            // 当前页的图都到齐了，并且下一页已经有一张图 -> 悄悄提前切页
+            function advanceCurrentPage() {
+                const slot = getSlot(currentPage);
+                if (slot.pending.size > 0) return;
+                if (slot.loaded.size === 0 && !scanDone) return;
+
+                const now = Date.now();
+                if (now - lastAdvanceAt < 900) return;   // 别切太快
+
+                const nextNumber = currentPage * IMAGES_PER_PAGE + 1;
+                const nextHasImage = (getSlot(currentPage + 1).loaded.has(nextNumber) || getSlot(currentPage + 1).failed.has(nextNumber));
+                if (!nextHasImage) return;
+
+                lastAdvanceAt = now;
+                currentPage++;
+                renderPage();
+                scanPage(currentPage);
+            }
+
+            function updateLoadingMore() {
+                const slot = getSlot(currentPage);
+                const waiting = !scanDone && slot.pending.size === 0;
+                loadingMore.style.display = waiting ? 'block' : 'none';
+                loadingMore.textContent = !scanDone && slot.loaded.size > 0
+                    ? '这一页已加载完，正在准备下一页…'
+                    : '相册还在加载中…';
             }
 
             function updatePaginationUI() {
+                const limit = navLimit();
                 prevBtn.disabled = currentPage === 1;
-                nextBtn.disabled = isScanningDone ? (currentPage >= totalPages) : false;
+                nextBtn.disabled = currentPage >= limit;
+
+                if (scanDone) {
+                    totalPagesSpan.textContent = Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE));
+                    pageInput.max = totalPagesSpan.textContent;
+                } else {
+                    totalPagesSpan.textContent = '?';
+                    pageInput.max = Math.max(1, Math.ceil(Math.max(indexedCount, 1) / IMAGES_PER_PAGE) + 1);
+                }
                 pageInput.value = currentPage;
             }
 
-            prevBtn.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    renderPage();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+            // ---------- 翻页 ----------
+
+            let advanceTimer = null;
+            function startAdvanceTimer() {
+                clearInterval(advanceTimer);
+                advanceTimer = setInterval(() => {
+                    if (scanDone) { clearInterval(advanceTimer); advanceTimer = null; return; }
+                    advanceCurrentPage();
+                }, 500);
+            }
+
+            // 扫描位跟随当前页（留一页余量，避免用户刚翻开时来不及探测）
+            function pokeScanner() {
+                wantedPage = currentPage + 1;
+            }
+
+            function goToPage(page) {
+                const limit = navLimit();
+                page = Math.min(Math.max(1, page), Math.max(1, limit));
+                if (page === currentPage) {
+                    pageInput.value = currentPage;
+                    return;
                 }
+                currentPage = page;
+                pokeScanner();
+                renderPage();
+                scanPage(currentPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            prevBtn.addEventListener('click', () => {
+                if (currentPage > 1) goToPage(currentPage - 1);
             });
 
             nextBtn.addEventListener('click', () => {
-                currentPage++;
-                renderPage();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if (currentPage >= navLimit()) return;
+                if (scanDone) {
+                    goToPage(currentPage + 1);
+                } else {
+                    forceTarget = currentPage + 1;
+                    pokeScanner();
+                    // 下一页还一张图都没有时，先给个即时反馈
+                    if (getSlot(currentPage + 1).loaded.size === 0 && getSlot(currentPage + 1).pending.size === 0) {
+                        renderPage();
+                    }
+                    goToPage(currentPage + 1);
+                }
             });
 
             pageInput.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value);
-                if (isNaN(val) || val < 1) val = 1;
-                if (isScanningDone && val > totalPages) val = totalPages;
-                
-                if (val !== currentPage) {
-                    currentPage = val;
-                    renderPage();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                } else {
+                const val = parseInt(e.target.value);
+                if (isNaN(val) || val === currentPage) {
                     e.target.value = currentPage;
+                    return;
                 }
+                goToPage(val);
             });
 
             pageInput.addEventListener('keydown', (e) => {
@@ -461,6 +700,13 @@
                     pageInput.blur();
                 }
             });
+
+            // 用户往下滚动时，把扫描位往前推，保证滚到的位置有图
+            window.addEventListener('scroll', () => {
+                if (scanDone) return;
+                if (getSlot(currentPage).pending.size > 0) return;
+                pokeScanner();
+            }, { passive: true });
         }
     </script>
 </body>
