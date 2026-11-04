@@ -1,99 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>沅神开播了 - 视频选集</title>
     <link rel="icon" href="ciallo.png" type="image/png">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --ink: #1a2b49;
+            --ink-soft: #55637c;
+            --accent-1: #5b8def;
+            --accent-2: #8f7bf0;
+            --paper: rgba(255, 255, 255, 0.72);
+            --line: rgba(0, 20, 40, 0.08);
+        }
+        * { box-sizing: border-box; }
+        html, body { min-height: 100%; }
         body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: #f4f7fb;
-            padding: 1.5rem;
+            margin: 0; padding: 2rem 1rem 3rem;
+            font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: linear-gradient(160deg, #eef4ff 0%, #f7f2ff 45%, #f2fbff 100%);
             overflow-x: hidden;
         }
-        .bg-orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.2; z-index: 0; pointer-events: none; animation: orbDrift 18s infinite alternate ease-in-out; }
-        .orb-1 { width: 340px; height: 340px; background: #7aa9da; top: -100px; left: -120px; animation-duration: 22s; }
-        .orb-2 { width: 420px; height: 420px; background: #b2cfe8; bottom: -150px; right: -130px; animation-duration: 26s; animation-delay: -5s; }
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background:
+                radial-gradient(circle at 12% 18%, rgba(91, 141, 239, 0.16), transparent 42%),
+                radial-gradient(circle at 88% 12%, rgba(143, 123, 240, 0.16), transparent 44%),
+                radial-gradient(circle at 50% 92%, rgba(94, 209, 195, 0.14), transparent 46%);
+        }
         @keyframes orbDrift { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -25px) scale(1.08); } 100% { transform: translate(-20px, 20px) scale(0.96); } }
-        
+        .bg-orb {
+            position: fixed; z-index: -1; border-radius: 50%; pointer-events: none;
+            filter: blur(40px); opacity: 0.55; animation: orbDrift 18s ease-in-out infinite alternate;
+        }
+        .orb-1 { width: 320px; height: 320px; top: -80px; left: -80px; background: radial-gradient(circle, rgba(91, 141, 239, 0.55), transparent 70%); }
+        .orb-2 { width: 380px; height: 380px; bottom: -120px; right: -100px; background: radial-gradient(circle, rgba(143, 123, 240, 0.5), transparent 70%); animation-delay: -6s; }
+
         .video-card {
-            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            border-radius: 2.5rem; padding: 3.5rem 3rem; max-width: 1000px; width: 100%;
-            box-shadow: 0 25px 40px -12px rgba(0, 20, 40, 0.15), 0 6px 18px rgba(0, 0, 0, 0.05), inset 0 1px 4px rgba(255, 255, 255, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.9); position: relative; z-index: 2; animation: cardEnter 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+            width: 100%; max-width: 1000px; margin: 0 auto; padding: 3rem;
+            background: var(--paper); border-radius: 2.5rem; border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 30px 60px -30px rgba(0, 20, 40, 0.35), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+            animation: cardEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
         @keyframes cardEnter { 0% { opacity: 0; transform: translateY(40px) scale(0.96); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
-        
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-        .page-title { font-size: clamp(1.8rem, 6vw, 3rem); font-weight: 800; color: #162b3c; text-shadow: 0 4px 10px rgba(0, 20, 30, 0.06); }
-        
-        .download-btn {
-            display: inline-flex; align-items: center; gap: 0.5rem; background: #183e5c; color: white; font-size: 1rem; font-weight: 700; text-decoration: none;
-            padding: 0.8rem 1.8rem; border-radius: 100px; box-shadow: 0 10px 20px -8px rgba(20, 45, 70, 0.5); background-image: linear-gradient(145deg, #1e4a6e, #0d2740);
-            border: 1px solid rgba(255, 255, 255, 0.2); transition: all 0.28s ease;
-        }
-        .download-btn:hover { background-image: linear-gradient(145deg, #1d4468, #0a1f30); transform: translateY(-3px); box-shadow: 0 15px 25px -8px rgba(10, 30, 50, 0.7); }
-        
-        .episodes-container {
-            display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            max-height: 220px; overflow-y: auto; min-height: 60px; position: relative;
-        }
-        .scanning-text { width: 100%; text-align: center; color: #607d8b; font-size: 1rem; font-weight: 600; margin-top: 0.5rem; }
-        .episodes-container::-webkit-scrollbar { width: 6px; }
-        .episodes-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); border-radius: 10px; }
-        .episodes-container::-webkit-scrollbar-thumb { background: rgba(24, 62, 92, 0.3); border-radius: 10px; }
-        
-        .ep-btn {
-            background: #e0e8f0; color: #183e5c; font-size: 1rem; font-weight: 700; padding: 0.6rem 1.4rem; border-radius: 100px;
-            border: none; cursor: pointer; transition: all 0.2s ease; animation: fadeIn 0.4s ease both;
-        }
-        .ep-btn:hover { background: #c9d8e8; transform: translateY(-2px); }
-        .ep-btn.active { background: #183e5c; color: white; box-shadow: 0 8px 15px -5px rgba(20, 45, 70, 0.5); }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
 
-        /* 视频标题区 */
-        .video-title-area { 
-            text-align: left; 
-            margin-bottom: 1rem; 
-            padding: 0 0.5rem; 
-            display: none; 
+        .header-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.8rem; }
+        .page-title {
+            margin: 0; font-size: clamp(1.7rem, 4.6vw, 2.5rem); font-weight: 800; line-height: 1.3; letter-spacing: 0.02em;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            animation: textEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
+        @keyframes textEnter { 0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(6px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+
+        .download-btn {
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            padding: 0.6rem 1.3rem; font-size: 0.92rem; font-weight: 600; color: #fff; text-decoration: none;
+            border-radius: 999px;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 14px 26px -16px rgba(91, 141, 239, 0.95);
+            transition: transform 0.22s ease, box-shadow 0.22s ease;
+        }
+        .download-btn:hover { transform: translateY(-2px); box-shadow: 0 20px 32px -16px rgba(91, 141, 239, 1); }
+        .download-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .episodes-container {
+            display: flex; flex-wrap: wrap; gap: 0.6rem;
+            max-height: 200px; overflow-y: auto; min-height: 52px;
+            margin-bottom: 1.5rem; padding-bottom: 1.2rem; border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .episodes-container::-webkit-scrollbar { width: 6px; }
+        .episodes-container::-webkit-scrollbar-thumb { background: rgba(91, 141, 239, 0.25); border-radius: 10px; }
+        .scanning-text { width: 100%; text-align: center; color: var(--ink-soft); font-size: 0.9rem; padding: 0.6rem 0; }
+
+        .ep-btn {
+            padding: 0.5rem 1.15rem; font-size: 0.92rem; font-weight: 600; cursor: pointer;
+            color: var(--ink-soft); background: #fff; border: 1px solid var(--line); border-radius: 999px;
+            transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            animation: fadeIn 0.4s ease both;
+        }
+        .ep-btn:hover { transform: translateY(-2px); background: #f3f7ff; color: var(--ink); }
+        .ep-btn.active {
+            color: #fff; border-color: transparent;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 12px 22px -14px rgba(91, 141, 239, 0.95);
+        }
+
+        .video-title-area { display: none; margin: 0 0 0.9rem; padding: 0 0.4rem; text-align: left; }
         .video-title-area.show { display: block; }
-        .video-title-text { font-size: 1.4rem; font-weight: 800; color: #162b3c; }
+        .video-title-text { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
 
         .player-wrapper {
-            position: relative; width: 100%; border-radius: 1.5rem; overflow: hidden; background: #000; aspect-ratio: 16 / 9;
-            box-shadow: 0 20px 40px -15px rgba(0, 20, 40, 0.3); margin-bottom: 1.5rem;
+            position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+            border-radius: 1.5rem; background: #0f1a2b;
+            box-shadow: 0 24px 46px -26px rgba(0, 20, 40, 0.6);
         }
         video { width: 100%; height: 100%; object-fit: contain; display: block; }
-        
+
         .error-overlay {
             position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: #1a2b3c; color: #a0aec0; font-size: 1.2rem; font-weight: 600; z-index: 5; padding: 2rem; text-align: center; line-height: 1.6;
+            gap: 0.5rem; padding: 2rem; text-align: center; line-height: 1.7;
+            background: #0f1a2b; color: #b8c6da; font-size: 1.05rem; font-weight: 600; z-index: 5;
         }
-        .error-overlay svg { width: 60px; height: 60px; fill: #607d8b; margin-bottom: 1rem; }
-        
-        .custom-fullscreen-btn {
-            position: absolute; bottom: 1.5rem; right: 1.5rem; background: rgba(0, 0, 0, 0.6); color: white; border: none; border-radius: 50%;
-            width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;
-            transition: background 0.2s ease, transform 0.2s ease; backdrop-filter: blur(4px);
-        }
-        .custom-fullscreen-btn:hover { background: rgba(0, 0, 0, 0.85); transform: scale(1.1); }
-        .custom-fullscreen-btn svg { width: 24px; height: 24px; fill: white; }
+        .error-overlay svg { width: 52px; height: 52px; fill: #55637c; margin-bottom: 0.5rem; }
 
         @media (max-width: 768px) {
-            .video-card { padding: 2rem 1.5rem; border-radius: 2rem; }
+            .video-card { padding: 2rem 1.25rem; border-radius: 2rem; }
             .header-row { flex-direction: column; align-items: flex-start; }
             .download-btn { width: 100%; justify-content: center; }
             .episodes-container { max-height: 150px; }
-            .ep-btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
-            .video-title-text { font-size: 1.2rem; }
+            .ep-btn { padding: 0.45rem 0.95rem; font-size: 0.85rem; }
+            .video-title-text { font-size: 1.1rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
         }
     </style>
 </head>
@@ -105,25 +129,22 @@
         <div class="header-row">
             <div class="page-title">沅神开播了</div>
             <a href="https://url13.ctfile.com/d/66483413-169028925-6c0fe3?p=D8g7Nj1w" target="_blank" rel="noopener noreferrer" class="download-btn">
-                <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: currentColor;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                 下载原视频
             </a>
         </div>
 
-        <!-- 选集区 -->
         <div class="episodes-container" id="episodes-container">
             <div class="scanning-text" id="scanning-text">正在读取视频列表，请稍候...</div>
         </div>
 
-        <!-- 视频标题区 -->
         <div class="video-title-area" id="video-title-area">
             <div class="video-title-text" id="video-title-text"></div>
         </div>
 
-        <!-- 视频播放区 -->
         <div class="player-wrapper" id="player-wrapper">
             <video id="video-player" controls preload="metadata" playsinline webkit-playsinline></video>
-            
+
             <div class="error-overlay" id="error-overlay" style="display: none;">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 <span id="error-text">本集内容缺失</span>
@@ -137,8 +158,6 @@
             const videoPlayer = document.getElementById('video-player');
             const errorOverlay = document.getElementById('error-overlay');
             const errorText = document.getElementById('error-text');
-            const playerWrapper = document.getElementById('player-wrapper');
-            const fullscreenBtn = document.getElementById('fullscreen-btn');
             const videoTitleArea = document.getElementById('video-title-area');
             const videoTitleText = document.getElementById('video-title-text');
 
@@ -151,7 +170,7 @@
                 try {
                     const response = await fetch('./yskbl/list.json?t=' + Date.now(), { cache: 'no-store' });
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    
+
                     const data = await response.json();
                     if (!Array.isArray(data) || data.length === 0) {
                         throw new Error('JSON格式错误：必须是非空数组');
@@ -161,41 +180,31 @@
                     renderEpisodeButtons();
                 } catch (err) {
                     console.error("读取 list.json 失败:", err);
-                    episodesContainer.innerHTML = '<div class="scanning-text" style="color: #d32f2f;">无法加载视频列表，请确保 yskbl 文件夹下有正确的 list.json。</div>';
+                    episodesContainer.innerHTML = '<div class="scanning-text" style="color: #d64545;">无法加载视频列表，请确保 yskbl 文件夹下有正确的 list.json。</div>';
                 }
             }
 
             // ==========================================
             // 2. 智能解析文件名与渲染
             // ==========================================
+            function parseFilename(filename) {
+                const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
+                if (nameWithoutExt.includes('.')) {
+                    const parts = nameWithoutExt.split('.');
+                    let buttonText = parts[0];
+                    const videoTitle = parts.slice(1).join('.');
+                    if (/^\d+$/.test(buttonText)) buttonText = `第 ${buttonText} 集`;
+                    return { buttonText, videoTitle };
+                }
+                return { buttonText: nameWithoutExt, videoTitle: '' };
+            }
+
             function renderEpisodeButtons() {
                 episodesContainer.innerHTML = '';
 
                 videoList.forEach((filename, idx) => {
-                    // 核心解析逻辑
-                    let buttonText = '';
-                    let videoTitle = '';
+                    const { buttonText } = parseFilename(filename);
 
-                    // 先去掉扩展名，比如 "番外1.汪洋大海.mp4" -> "番外1.汪洋大海"
-                    const nameWithoutExt = filename.replace(/\.[^.]+$/, '');
-
-                    // 如果名字里有 "."，说明前面是按钮名，后面是标题
-                    if (nameWithoutExt.includes('.')) {
-                        const parts = nameWithoutExt.split('.');
-                        buttonText = parts[0]; // 前半部分，例如 "番外1" 或 "1"
-                        videoTitle = parts.slice(1).join('.'); // 后半部分，例如 "汪洋大海" 或 "绝望来临"
-
-                        // 如果是纯数字（如 "1"），就给它加上“第 X 集”
-                        if (/^\d+$/.test(buttonText)) {
-                            buttonText = `第 ${buttonText} 集`;
-                        }
-                    } else {
-                        // 如果连点都没有（比如直接叫 "预告.mp4"），就把整个名字当按钮
-                        buttonText = nameWithoutExt;
-                        videoTitle = ''; // 没有标题
-                    }
-
-                    // 创建按钮
                     const btn = document.createElement('button');
                     btn.className = 'ep-btn';
                     btn.textContent = buttonText;
@@ -204,26 +213,16 @@
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
-                        loadEpisode(filename, videoTitle);
+                        loadEpisode(filename, parseFilename(filename).videoTitle);
                     });
 
                     episodesContainer.appendChild(btn);
                 });
 
-                // 默认播放第一个
-                const firstBtn = episodesContainer.querySelector('.ep-btn');
-                if (firstBtn && videoList.length > 0) {
-                    firstBtn.classList.add('active');
-                    
-                    // 获取第一个视频的标题
-                    const firstFilename = videoList[0];
-                    const nameWithoutExt = firstFilename.replace(/\.[^.]+$/, '');
-                    let firstTitle = '';
-                    if (nameWithoutExt.includes('.')) {
-                        firstTitle = nameWithoutExt.split('.').slice(1).join('.');
-                    }
-                    
-                    loadEpisode(firstFilename, firstTitle);
+                if (videoList.length > 0) {
+                    const firstBtn = episodesContainer.querySelector('.ep-btn');
+                    if (firstBtn) firstBtn.classList.add('active');
+                    loadEpisode(videoList[0], parseFilename(videoList[0]).videoTitle || '');
                 }
             }
 
@@ -236,10 +235,10 @@
 
                 const safeFilename = encodeURIComponent(filename);
                 const videoSrc = `./yskbl/${safeFilename}`;
-                
+
                 videoPlayer.src = videoSrc;
                 videoPlayer.load();
-                
+
                 videoPlayer.play().catch(e => {
                     console.log("自动播放被拦截，用户需手动点击播放按钮。");
                 });
@@ -247,7 +246,7 @@
                 videoPlayer.onerror = () => {
                     videoPlayer.style.display = 'none';
                     errorOverlay.style.display = 'flex';
-                    errorText.innerHTML = `本集内容缺失<br><span style="font-size: 0.9rem; color: #ffd166; margin-top: 10px; display: inline-block; word-break: break-all;">网页尝试寻找：<br>yskbl/${filename}</span><br><span style="font-size: 0.85rem; color: #a0aec0; margin-top: 5px; display: inline-block;">请检查文件是否存在且大小写一致</span>`;
+                    errorText.innerHTML = `本集内容缺失<br><span style="font-size: 0.85rem; color: #ffd166; margin-top: 8px; display: inline-block; word-break: break-all;">网页尝试寻找：<br>yskbl/${filename}</span><br><span style="font-size: 0.8rem; color: #8fa1b8; margin-top: 4px; display: inline-block;">请检查文件是否存在且大小写一致</span>`;
                 };
 
                 if (title && title.trim() !== '') {

@@ -172,7 +172,7 @@
             <div class="page-title">🎉 验证成功 🎉</div>
             <div class="gallery-container" id="gallery-container"></div>
             <div class="loading-more" id="loading-more" style="display: none;">相册还在加载中…</div>
-            <div class="pagination-controls" id="pagination-controls" style="display: none;">
+            <div class="pagination-controls" id="pagination-controls">
                 <button class="page-btn" id="prev-btn">上一页</button>
                 <div class="page-jump">
                     第 <input type="number" id="page-input" min="1" value="1"> 页 / 共 <span id="total-pages">?</span> 页
@@ -277,22 +277,22 @@
 
             const EXTENSIONS = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
             const IMAGES_PER_PAGE = 5;
-            const MAX_SCAN = 100;       // 最多探测到第几张
-            const MAX_MISSES = 3;       // 连续这么多次探测不到就认为到底了
-            const GUESS_AHEAD = 1;      // 扫描进度之后还能额外往后翻的页数（“下一页”切换时临时放开）
+            const MAX_SCAN = 100;          // 最多探测到第几张
+            const MAX_MISSES = 3;          // 连续这么多次探测不到就认为到底了
+            const ADVANCE_INTERVAL = 2000; // 整页到齐后，自动翻到下一页前的停留时间（毫秒）
+            const SCAN_DELAY = 30;         // 每探测一张之后的间隔
 
             // 相册状态
-            let indexedCount = 0;       // 已确认存在的照片，编号连续：1 .. indexedCount
-            let indexedPages = 0;       // 已确认的完整页数
-            let scanDone = false;       // 是否已经扫到底
+            let indexedNumber = 0;    // 已确认存在的最大照片编号
+            let scanDone = false;     // 是否已经扫到底
 
-            const pageCache = new Map(); // 页码 -> PageSlot
+            const pageCache = new Map(); // 页码 -> 该页的探测/加载状态
 
             let currentPage = 1;
-            let currentRenderToken = 0;
-            let wantedPage = 1;          // 扫描位当前正在为哪一页找图
-            let forceTarget = 0;         // “下一页”请求的页（允许提前探测）
+            let scanCursor = 1;           // 扫描器下一步要探测的编号
+            let scanRunning = false;
             let lastAdvanceAt = 0;
+            let advanceTimers = new Map(); // 照片编号 -> 定时器（整页到齐后自动翻页）
 
             async function initPassword() {
                 // 如果 3 秒后还没加载出来，强制报错，不卡界面
@@ -360,7 +360,7 @@
                     
                     currentPage = 1;
                     renderPage();
-                    scanLoop();
+                    startScanner();
                 } else {
                     showError("回答不正确哦，再想想~");
                     input.value = '';
@@ -374,95 +374,102 @@
                 setTimeout(() => { errorMsg.classList.remove('show'); }, 2000);
             }
 
-            // ---------- 页面渲染 ----------
-
-            // 可用页数：扫到底之前可以多翻一点（边扫边翻），扫到底后就是确认的页数
-            function navLimit() {
-                if (scanDone) return Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE));
-                return Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE) + 1);
-            }
-
-            function renderPage() {
-                const page = currentPage;
-                const slot = getSlot(page);
-                const startIndex = (page - 1) * IMAGES_PER_PAGE + 1;
-
-                currentRenderToken++;
-                galleryContainer.innerHTML = '';
-
-                for (let i = startIndex; i < startIndex + IMAGES_PER_PAGE; i++) {
-                    if (slot.failed.has(i)) continue;
-                    if (slot.loaded.has(i)) {
-                        galleryContainer.appendChild(buildLoadedItem(i, slot.loaded.get(i)));
-                    } else if (slot.started.has(i)) {
-                        galleryContainer.appendChild(slot.started.get(i));
-                    } else if (!slot.pending.has(i)) {
-                        addPendingIndex(slot, i);
-                    }
-                }
-
-                if (slot.failed.size && !slot.loaded.size && !slot.pending.size) {
-                    const box = document.createElement('div');
-                    box.className = 'photo-item item-failed';
-                    box.textContent = '这一页暂时没有照片';
-                    galleryContainer.appendChild(box);
-                }
-
-                updatePaginationUI();
-                updateLoadingMore();
-            }
+            // ---------- 各页状态 ----------
 
             function getSlot(page) {
                 let slot = pageCache.get(page);
                 if (!slot) {
-                    slot = { pending: new Set(), started: new Map(), loaded: new Map(), failed: new Set(), scanning: false };
+                    slot = {
+                        pending: new Set(),   // 正在探测/加载中的编号
+                        started: new Map(),   // 已显示占位图的元素
+                        loaded: new Map(),    // 已加载完成的：编号 -> 地址
+                        failed: new Set()     // 确认不存在的编号
+                    };
                     pageCache.set(page, slot);
                 }
                 return slot;
             }
 
-            function addPendingIndex(slot, index) {
-                let ph = slot.started.get(index);
-                if (ph) return ph;
-                ph = buildPlaceholder(index);
-                slot.started.set(index, ph);
-                slot.pending.add(index);
-                if (isPageOnScreen(slot)) galleryContainer.appendChild(ph);
-                return ph;
+            // 已确认的最大页数（扫到底之前，至少保证第 1 页）
+            function knownPages() {
+                if (indexedNumber === 0) return scanDone ? 0 : 1;
+                return Math.max(1, Math.ceil(indexedNumber / IMAGES_PER_PAGE));
             }
 
-            function isPageOnScreen(slot) {
-                return pageCache.get(currentPage) === slot;
+            function pageIsSettled(page) {
+                if (!scanDone) return false;
+                const slot = getSlot(page);
+                if (slot.pending.size > 0) return false;
+                const start = (page - 1) * IMAGES_PER_PAGE + 1;
+                for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
+                    if (slot.loaded.has(i)) continue;
+                    if (slot.failed.has(i)) continue;
+                    if (i <= indexedNumber) continue;  // 该编号不在这一页的范围内
+                    return true;                        // 还不确定这一格有没有照片
+                }
+                return false;
+            }
+
+            function nextPageReady(page) {
+                return page <= knownPages() && !pageIsSettled(page);
+            }
+
+            // ---------- 渲染 ----------
+
+            function renderPage() {
+                clearAdvanceTimers();
+                const page = currentPage;
+                const slot = getSlot(page);
+                const start = (page - 1) * IMAGES_PER_PAGE + 1;
+
+                galleryContainer.innerHTML = '';
+
+                let shown = 0;
+                for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
+                    if (slot.loaded.has(i)) {
+                        galleryContainer.appendChild(buildLoadedItem(i, slot.loaded.get(i)));
+                        shown++;
+                    } else if (slot.failed.has(i)) {
+                        continue;
+                    } else {
+                        galleryContainer.appendChild(addPendingIndex(slot, i));
+                        shown++;
+                    }
+                }
+
+                if (shown === 0) {
+                    const box = document.createElement('div');
+                    box.className = 'photo-item item-failed';
+                    box.textContent = scanDone ? '这一页暂时没有照片' : '正在加载照片…';
+                    galleryContainer.appendChild(box);
+                }
+
+                ensureLoading(page);
+                updatePaginationUI();
+                updateLoadingMore();
+                maybeScheduleAdvance();
+            }
+
+            function addPendingIndex(slot, index) {
+                let el = slot.started.get(index);
+                if (el) return el;
+                el = buildPlaceholder(index);
+                slot.started.set(index, el);
+                return el;
             }
 
             function buildPlaceholder(index) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'photo-item';
-                wrapper.style.animationDelay = `${(index % 5) * 0.1}s`;
+                wrapper.style.animationDelay = `${(index % IMAGES_PER_PAGE) * 0.1}s`;
                 wrapper.innerHTML = '<div class="photo-placeholder"><div class="shimmer"></div><div class="shimmer" style="width:40%"></div><div class="spinner"></div></div>';
                 return wrapper;
-            }
-
-            function resolveSlotIndex(slot, index, url) {
-                slot.pending.delete(index);
-                if (slot.loaded.has(index)) return;
-                const ph = slot.started.get(index);
-                if (url) {
-                    slot.loaded.set(index, url);
-                    const item = buildLoadedItem(index, url);
-                    if (ph && ph.parentNode) ph.parentNode.replaceChild(item, ph);
-                    else if (isPageOnScreen(slot)) galleryContainer.appendChild(item);
-                } else {
-                    slot.failed.add(index);
-                    if (ph && ph.parentNode) ph.parentNode.removeChild(ph);
-                }
-                updateLoadingMore();
             }
 
             function buildLoadedItem(index, url) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'photo-item';
-                wrapper.style.animationDelay = `${(index % 5) * 0.1}s`;
+                wrapper.style.animationDelay = `${(index % IMAGES_PER_PAGE) * 0.1}s`;
 
                 const imgEl = document.createElement('img');
                 imgEl.alt = `照片 ${index}`;
@@ -473,35 +480,103 @@
                 return wrapper;
             }
 
-            // 按顺序为某一页探测照片：探到一张就立刻替换占位图
-            async function scanPage(page) {
+            // 把某一张改成已加载 / 不存在。如果正显示在屏幕上，立刻替换占位图
+            function settleIndex(index, url) {
+                const page = Math.ceil(index / IMAGES_PER_PAGE);
                 const slot = getSlot(page);
-                if (slot.scanning) return;
-                slot.scanning = true;
-                try {
-                    const start = (page - 1) * IMAGES_PER_PAGE + 1;
-                    for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
-                        if (i > MAX_SCAN) { slot.pending.delete(i); continue; }
-                        slot.pending.delete(i);
-                        const url = await findImage(i);
-                        slot.pending.add(i);
-                        if (url) {
-                            resolveSlotIndex(slot, i, url);
-                            indexedCount = Math.max(indexedCount, i);
-                            indexedPages = Math.floor(indexedCount / IMAGES_PER_PAGE);
-                            if (page === currentPage) advanceCurrentPage();
-                        } else {
-                            resolveSlotIndex(slot, i, null);
-                        }
-                        updateLoadingMore();
-                    }
-                    updatePaginationUI();
-                } finally {
-                    slot.scanning = false;
+                slot.pending.delete(index);
+                if (url) {
+                    if (slot.loaded.has(index)) return;
+                    slot.loaded.set(index, url);
+                } else if (slot.loaded.has(index)) {
+                    return;
+                } else {
+                    slot.failed.add(index);
+                }
+                spliceIndexIntoPage(index, url);
+                updatePaginationUI();
+                updateLoadingMore();
+                maybeScheduleAdvance();
+            }
+
+            // 就地更新当前页的 DOM：按编号顺序找到正确位置，避免跳动
+            function spliceIndexIntoPage(index, url) {
+                if (Math.ceil(index / IMAGES_PER_PAGE) !== currentPage) return;
+                const page = Math.ceil(index / IMAGES_PER_PAGE);
+                const slot = getSlot(page);
+                const start = (page - 1) * IMAGES_PER_PAGE + 1;
+                const ph = slot.started.get(index);
+                const item = url ? buildLoadedItem(index, url) : null;
+
+                if (!ph || !ph.parentNode) {
+                    // 这一格之前没显示：插到按编号排好的位置
+                    if (item) insertItemInOrder(item, index, start);
+                    return;
+                }
+                if (item) ph.parentNode.replaceChild(item, ph);
+                else ph.parentNode.removeChild(ph);
+                clearEmptyPlaceholder();
+            }
+
+            function insertItemInOrder(item, index, start) {
+                let ref = null;
+                for (let i = index + 1; i < start + IMAGES_PER_PAGE; i++) {
+                    const el = getSlot(currentPage).started.get(i);
+                    if (el && el.parentNode === galleryContainer) { ref = el; break; }
+                    const loadedEl = galleryContainer.querySelector(`.photo-item[data-index="${i}"]`);
+                    if (loadedEl) { ref = loadedEl; break; }
+                }
+                item.dataset.index = index;
+                galleryContainer.insertBefore(item, ref);
+            }
+
+            function clearEmptyPlaceholder() {
+                const empty = galleryContainer.querySelector('.item-failed');
+                if (empty && galleryContainer.children.length > 1) empty.remove();
+            }
+
+            // ---------- 扫描 / 预加载 ----------
+
+            // 当前页所需的照片全部到位后，再往下一页多走一格（保证“下一页”是热的）
+            function pageFullyLoaded(page) {
+                const slot = getSlot(page);
+                if (slot.pending.size > 0) return false;
+                const start = (page - 1) * IMAGES_PER_PAGE + 1;
+                for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
+                    if (!slot.loaded.has(i) && !slot.failed.has(i)) return false;
+                }
+                return true;
+            }
+
+            function scanTarget() {
+                let target = currentPage * IMAGES_PER_PAGE + 1;
+                if (pageFullyLoaded(currentPage)) target = (currentPage + 1) * IMAGES_PER_PAGE + 1;
+                return target;
+            }
+
+            function ensureLoading(page) {
+                const slot = getSlot(page);
+                const target = scanTarget();
+                const start = (page - 1) * IMAGES_PER_PAGE + 1;
+                for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
+                    if (i < scanCursor || i > MAX_SCAN) continue;
+                    if (slot.loaded.has(i) || slot.failed.has(i) || slot.pending.has(i)) continue;
+                    // 当前页先加载；当前页没加载完时，后面的页先等一下
+                    if (page > currentPage && !pageFullyLoaded(currentPage)) continue;
+                    if (i > target + IMAGES_PER_PAGE) continue;
+                    loadIndex(i);
                 }
             }
 
-            async function findImage(index) {
+            function loadIndex(index) {
+                const page = Math.ceil(index / IMAGES_PER_PAGE);
+                const slot = getSlot(page);
+                if (slot.loaded.has(index) || slot.failed.has(index) || slot.pending.has(index)) return;
+                slot.pending.add(index);
+                probeExisting(index).then(url => settleIndex(index, url));
+            }
+
+            async function probeExisting(index) {
                 for (const ext of EXTENSIONS) {
                     const url = `./photo/${index}.${ext}`;
                     if (await probeImage(url)) return url;
@@ -518,151 +593,136 @@
                 });
             }
 
-            // 后台顺序扫描：先扫当前页，扫完整页就提前去下一页找图，实现“边加载边换页”
-            async function scanLoop() {
+            // 顺序扫描：确认照片总数，扫到一张就登记一张，扫完一整页就交给页面处理
+            async function startScanner() {
+                if (scanRunning) return;
+                scanRunning = true;
                 let missStreak = 0;
-                let index = 1;
 
-                while (index <= MAX_SCAN) {
+                while (scanCursor <= MAX_SCAN) {
+                    const index = scanCursor;
                     const page = Math.ceil(index / IMAGES_PER_PAGE);
-                    const start = (page - 1) * IMAGES_PER_PAGE + 1;
-                    const end = start + IMAGES_PER_PAGE - 1;
                     const slot = getSlot(page);
 
-                    // 等真正需要这一页时再去探测，避免无意义地白扫
-                    while (!scanDone && page > wantedPage && page > forceTarget) {
-                        await new Promise(r => setTimeout(r, 100));
-                    }
-
-                    // 这一页在开始扫描时就已经在缓存里了，不用再探测
-                    if (slot.loaded.has(index) || slot.failed.has(index)) {
-                        if (!slot.loaded.has(index)) missStreak++;
-                        index++;
+                    // 已经提前加载过的，直接登记
+                    if (slot.loaded.has(index)) {
+                        indexedNumber = Math.max(indexedNumber, index);
+                        missStreak = 0;
+                        scanCursor++;
+                        maybeScheduleAdvance();
+                        updatePaginationUI();
+                        ensureLoading(currentPage);
+                        await sleep(SCAN_DELAY);
                         continue;
                     }
-
-                    addPendingIndex(slot, index);
-
-                    const url = await findImage(index);
-
-                    if (url) {
-                        missStreak = 0;
-                        indexedCount = index;
-                        indexedPages = Math.floor(indexedCount / IMAGES_PER_PAGE);
-                        resolveSlotIndex(slot, index, url);
-                        pageCache.forEach((s, p) => {
-                            if (p * IMAGES_PER_PAGE < index && s.pending.has(index)) s.pending.delete(index);
-                        });
-                        if (page === currentPage) advanceCurrentPage();
-                    } else {
+                    if (slot.failed.has(index)) {
                         missStreak++;
-                        resolveSlotIndex(slot, index, null);
-                        pageCache.forEach((s) => s.pending.delete(index));
-                        if (missStreak >= MAX_MISSES) {
-                            // 连续探测不到：到底了
-                            for (let i = index; i <= end; i++) {
-                                getSlot(page).pending.delete(i);
-                                getSlot(page).started.delete(i);
-                                getSlot(page).failed.delete(i);
-                            }
-                            scanDone = true;
-                            totalPages = Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE));
-                            totalPagesSpan.textContent = totalPages;
-                            pageInput.max = totalPages;
-                            if (totalPages > 1) paginationControls.style.display = 'flex';
-                            break;
+                    } else {
+                        slot.pending.add(index);
+                        const url = await probeExisting(index);
+                        settleIndex(index, url);
+                        if (url) {
+                            indexedNumber = Math.max(indexedNumber, index);
+                            missStreak = 0;
+                        } else {
+                            missStreak++;
                         }
                     }
 
                     updatePaginationUI();
                     updateLoadingMore();
+                    ensureLoading(currentPage);
 
-                    index++;
-                    await new Promise(r => setTimeout(r, 50));
+                    if (missStreak >= MAX_MISSES) {
+                        // 连续几张都探测不到：到底了
+                        for (let i = index; i < index + MAX_MISSES; i++) {
+                            const p = Math.ceil(i / IMAGES_PER_PAGE);
+                            const s = getSlot(p);
+                            s.pending.delete(i);
+                            s.started.delete(i);
+                            s.failed.delete(i);
+                        }
+                        scanDone = true;
+                        break;
+                    }
+
+                    scanCursor++;
+                    await sleep(SCAN_DELAY);
                 }
 
                 scanDone = true;
-                // 清掉越界页缓存
-                const maxKnownPage = Math.max(1, Math.ceil(Math.max(indexedCount, 1) / IMAGES_PER_PAGE));
-                pageCache.forEach((s, p) => { if (p > maxKnownPage + 1) pageCache.delete(p); });
-                if (currentPage > maxKnownPage) {
-                    currentPage = maxKnownPage;
+                scanRunning = false;
+
+                if (currentPage > Math.max(1, knownPages())) {
+                    currentPage = Math.max(1, knownPages());
+                    renderPage();
+                } else {
+                    ensureLoading(currentPage);
                     renderPage();
                 }
                 updatePaginationUI();
                 updateLoadingMore();
+                maybeScheduleAdvance();
             }
 
-            // 当前页的图都到齐了，并且下一页已经有一张图 -> 悄悄提前切页
-            function advanceCurrentPage() {
-                const slot = getSlot(currentPage);
-                if (slot.pending.size > 0) return;
-                if (slot.loaded.size === 0 && !scanDone) return;
+            function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-                const now = Date.now();
-                if (now - lastAdvanceAt < 900) return;   // 别切太快
+            // ---------- 自动翻页 ----------
 
-                const nextNumber = currentPage * IMAGES_PER_PAGE + 1;
-                const nextHasImage = (getSlot(currentPage + 1).loaded.has(nextNumber) || getSlot(currentPage + 1).failed.has(nextNumber));
-                if (!nextHasImage) return;
-
-                lastAdvanceAt = now;
-                currentPage++;
-                renderPage();
-                scanPage(currentPage);
+            function clearAdvanceTimers() {
+                advanceTimers.forEach(t => clearTimeout(t));
+                advanceTimers.clear();
             }
+
+            function maybeScheduleAdvance() {
+                const page = currentPage;
+                if (!pageFullyLoaded(page)) return;
+                if (nextPageReady(page + 1)) return;
+                if (advanceTimers.has(page)) return;
+
+                const wait = Math.max(0, ADVANCE_INTERVAL - (Date.now() - lastAdvanceAt));
+                const timer = setTimeout(() => {
+                    advanceTimers.delete(page);
+                    if (page !== currentPage) return;
+                    if (!pageFullyLoaded(page) || nextPageReady(page + 1)) return;
+                    lastAdvanceAt = Date.now();
+                    currentPage = page + 1;
+                    renderPage();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, wait);
+                advanceTimers.set(page, timer);
+            }
+
+            // ---------- 翻页控件 ----------
 
             function updateLoadingMore() {
                 const slot = getSlot(currentPage);
-                const waiting = !scanDone && slot.pending.size === 0;
-                loadingMore.style.display = waiting ? 'block' : 'none';
-                loadingMore.textContent = !scanDone && slot.loaded.size > 0
-                    ? '这一页已加载完，正在准备下一页…'
-                    : '相册还在加载中…';
+                loadingMore.style.display = (slot.pending.size > 0) ? 'block' : 'none';
+                loadingMore.textContent = '相册还在加载中…';
             }
 
             function updatePaginationUI() {
-                const limit = navLimit();
                 prevBtn.disabled = currentPage === 1;
-                nextBtn.disabled = currentPage >= limit;
+                nextBtn.disabled = nextPageReady(currentPage + 1) ? false : !(currentPage < knownPages() && !scanDone);
 
-                if (scanDone) {
-                    totalPagesSpan.textContent = Math.max(1, Math.ceil(indexedCount / IMAGES_PER_PAGE));
-                    pageInput.max = totalPagesSpan.textContent;
+                // 扫到底之前不显示“共 ? 页”，而是显示已经确认的页数 + “…”
+                const known = Math.max(1, knownPages());
+                if (!scanDone) {
+                    totalPagesSpan.textContent = known + '…';
+                    pageInput.max = Math.max(1, known + 1);
                 } else {
-                    totalPagesSpan.textContent = '?';
-                    pageInput.max = Math.max(1, Math.ceil(Math.max(indexedCount, 1) / IMAGES_PER_PAGE) + 1);
+                    totalPagesSpan.textContent = String(Math.max(1, Math.ceil(indexedNumber / IMAGES_PER_PAGE) || 1));
+                    pageInput.max = totalPagesSpan.textContent;
                 }
                 pageInput.value = currentPage;
             }
 
-            // ---------- 翻页 ----------
-
-            let advanceTimer = null;
-            function startAdvanceTimer() {
-                clearInterval(advanceTimer);
-                advanceTimer = setInterval(() => {
-                    if (scanDone) { clearInterval(advanceTimer); advanceTimer = null; return; }
-                    advanceCurrentPage();
-                }, 500);
-            }
-
-            // 扫描位跟随当前页（留一页余量，避免用户刚翻开时来不及探测）
-            function pokeScanner() {
-                wantedPage = currentPage + 1;
-            }
-
             function goToPage(page) {
-                const limit = navLimit();
-                page = Math.min(Math.max(1, page), Math.max(1, limit));
-                if (page === currentPage) {
-                    pageInput.value = currentPage;
-                    return;
-                }
+                const maxPage = scanDone ? Math.max(1, knownPages()) : knownPages() + 1;
+                page = Math.min(Math.max(1, page), maxPage);
+                if (page === currentPage) { pageInput.value = currentPage; return; }
                 currentPage = page;
-                pokeScanner();
                 renderPage();
-                scanPage(currentPage);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
@@ -671,26 +731,12 @@
             });
 
             nextBtn.addEventListener('click', () => {
-                if (currentPage >= navLimit()) return;
-                if (scanDone) {
-                    goToPage(currentPage + 1);
-                } else {
-                    forceTarget = currentPage + 1;
-                    pokeScanner();
-                    // 下一页还一张图都没有时，先给个即时反馈
-                    if (getSlot(currentPage + 1).loaded.size === 0 && getSlot(currentPage + 1).pending.size === 0) {
-                        renderPage();
-                    }
-                    goToPage(currentPage + 1);
-                }
+                if (!nextBtn.disabled) goToPage(currentPage + 1);
             });
 
             pageInput.addEventListener('change', (e) => {
                 const val = parseInt(e.target.value);
-                if (isNaN(val) || val === currentPage) {
-                    e.target.value = currentPage;
-                    return;
-                }
+                if (isNaN(val)) { e.target.value = currentPage; return; }
                 goToPage(val);
             });
 
@@ -700,13 +746,6 @@
                     pageInput.blur();
                 }
             });
-
-            // 用户往下滚动时，把扫描位往前推，保证滚到的位置有图
-            window.addEventListener('scroll', () => {
-                if (scanDone) return;
-                if (getSlot(currentPage).pending.size > 0) return;
-                pokeScanner();
-            }, { passive: true });
         }
     </script>
 </body>
