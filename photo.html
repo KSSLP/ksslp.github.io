@@ -279,20 +279,21 @@
             const IMAGES_PER_PAGE = 5;
             const MAX_SCAN = 100;          // 最多探测到第几张
             const MAX_MISSES = 3;          // 连续这么多次探测不到就认为到底了
-            const ADVANCE_INTERVAL = 2000; // 整页到齐后，自动翻到下一页前的停留时间（毫秒）
-            const SCAN_DELAY = 30;         // 每探测一张之后的间隔
+
+            // 默认是手动翻页；想恢复“整页加载完自动翻下一页”，把这里改成 2000 之类的毫秒数即可
+            const AUTO_ADVANCE_DELAY = 0;
 
             // 相册状态
             let indexedNumber = 0;    // 已确认存在的最大照片编号
-            let scanDone = false;     // 是否已经扫到底
+            let scanDone = false;     // 是否已经结束扫描
 
             const pageCache = new Map(); // 页码 -> 该页的探测/加载状态
 
             let currentPage = 1;
-            let scanCursor = 1;           // 扫描器下一步要探测的编号
+            let scanCursor = 1;           // 总扫描器下一步要探测的编号
             let scanRunning = false;
             let lastAdvanceAt = 0;
-            let advanceTimers = new Map(); // 照片编号 -> 定时器（整页到齐后自动翻页）
+            let advanceTimer = null;
 
             async function initPassword() {
                 // 如果 3 秒后还没加载出来，强制报错，不卡界面
@@ -361,6 +362,7 @@
                     currentPage = 1;
                     renderPage();
                     startScanner();
+                    startFiller();
                 } else {
                     showError("回答不正确哦，再想想~");
                     input.value = '';
@@ -392,32 +394,28 @@
 
             // 已确认的最大页数（扫到底之前，至少保证第 1 页）
             function knownPages() {
-                if (indexedNumber === 0) return scanDone ? 0 : 1;
                 return Math.max(1, Math.ceil(indexedNumber / IMAGES_PER_PAGE));
             }
 
-            function pageIsSettled(page) {
-                if (!scanDone) return false;
-                const slot = getSlot(page);
-                if (slot.pending.size > 0) return false;
-                const start = (page - 1) * IMAGES_PER_PAGE + 1;
-                for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
-                    if (slot.loaded.has(i)) continue;
-                    if (slot.failed.has(i)) continue;
-                    if (i <= indexedNumber) continue;  // 该编号不在这一页的范围内
-                    return true;                        // 还不确定这一格有没有照片
-                }
-                return false;
+            // 扫描结束后的真实总页数
+            function finalPages() {
+                return Math.max(1, Math.ceil(indexedNumber / IMAGES_PER_PAGE));
             }
 
-            function nextPageReady(page) {
-                return page <= knownPages() && !pageIsSettled(page);
+            // 点“下一页”实际能去到的最大页数
+            // 扫描中：多给一页（那一页正在被后台探测）；扫描结束：只有真实页数
+            function navMax() {
+                return scanDone ? finalPages() : knownPages() + 1;
+            }
+
+            function canGoNext() {
+                return currentPage < navMax();
             }
 
             // ---------- 渲染 ----------
 
             function renderPage() {
-                clearAdvanceTimers();
+                clearAdvanceTimer();
                 const page = currentPage;
                 const slot = getSlot(page);
                 const start = (page - 1) * IMAGES_PER_PAGE + 1;
@@ -440,7 +438,7 @@
                 if (shown === 0) {
                     const box = document.createElement('div');
                     box.className = 'photo-item item-failed';
-                    box.textContent = scanDone ? '这一页暂时没有照片' : '正在加载照片…';
+                    box.textContent = '这一页没有照片';
                     galleryContainer.appendChild(box);
                 }
 
@@ -537,7 +535,7 @@
 
             // ---------- 扫描 / 预加载 ----------
 
-            // 当前页所需的照片全部到位后，再往下一页多走一格（保证“下一页”是热的）
+            // 某一页的每一格都已经确定（有图或没图）
             function pageFullyLoaded(page) {
                 const slot = getSlot(page);
                 if (slot.pending.size > 0) return false;
@@ -548,32 +546,25 @@
                 return true;
             }
 
-            function scanTarget() {
-                let target = currentPage * IMAGES_PER_PAGE + 1;
-                if (pageFullyLoaded(currentPage)) target = (currentPage + 1) * IMAGES_PER_PAGE + 1;
-                return target;
-            }
-
-            function ensureLoading(page) {
+            // 只加载某一页（不会越界去染指别的页面的编号）
+            function loadPage(page) {
                 const slot = getSlot(page);
-                const target = scanTarget();
                 const start = (page - 1) * IMAGES_PER_PAGE + 1;
                 for (let i = start; i < start + IMAGES_PER_PAGE; i++) {
-                    if (i < scanCursor || i > MAX_SCAN) continue;
+                    if (i > MAX_SCAN) continue;
+                    if (i > indexedNumber + MAX_MISSES && scanDone) continue;
                     if (slot.loaded.has(i) || slot.failed.has(i) || slot.pending.has(i)) continue;
-                    // 当前页先加载；当前页没加载完时，后面的页先等一下
-                    if (page > currentPage && !pageFullyLoaded(currentPage)) continue;
-                    if (i > target + IMAGES_PER_PAGE) continue;
-                    loadIndex(i);
+                    slot.pending.add(i);
+                    probeExisting(i).then(url => settleIndex(i, url));
                 }
             }
 
-            function loadIndex(index) {
-                const page = Math.ceil(index / IMAGES_PER_PAGE);
-                const slot = getSlot(page);
-                if (slot.loaded.has(index) || slot.failed.has(index) || slot.pending.has(index)) return;
-                slot.pending.add(index);
-                probeExisting(index).then(url => settleIndex(index, url));
+            // 当前页优先；当前页到齐后顺带预热下一页
+            function ensureLoading(page) {
+                loadPage(page);
+                if (pageFullyLoaded(page) && page < navMax()) {
+                    loadPage(page + 1);
+                }
             }
 
             async function probeExisting(index) {
@@ -593,104 +584,99 @@
                 });
             }
 
-            // 顺序扫描：确认照片总数，扫到一张就登记一张，扫完一整页就交给页面处理
+            // 总扫描器：只做一件事——顺序探测 1,2,3... 直到连续 MAX_MISSES 张都不存在，
+            // 用来确定照片总数和真实总页数。（不负责渲染，也不会跳到别的页）
             async function startScanner() {
                 if (scanRunning) return;
                 scanRunning = true;
                 let missStreak = 0;
+                let index = 1;
 
-                while (scanCursor <= MAX_SCAN) {
-                    const index = scanCursor;
-                    const page = Math.ceil(index / IMAGES_PER_PAGE);
-                    const slot = getSlot(page);
+                while (index <= MAX_SCAN) {
+                    const slot = getSlot(Math.ceil(index / IMAGES_PER_PAGE));
 
-                    // 已经提前加载过的，直接登记
                     if (slot.loaded.has(index)) {
-                        indexedNumber = Math.max(indexedNumber, index);
                         missStreak = 0;
-                        scanCursor++;
-                        maybeScheduleAdvance();
-                        updatePaginationUI();
-                        ensureLoading(currentPage);
-                        await sleep(SCAN_DELAY);
-                        continue;
-                    }
-                    if (slot.failed.has(index)) {
+                        indexedNumber = Math.max(indexedNumber, index);
+                    } else if (slot.failed.has(index)) {
                         missStreak++;
                     } else {
                         slot.pending.add(index);
                         const url = await probeExisting(index);
                         settleIndex(index, url);
                         if (url) {
-                            indexedNumber = Math.max(indexedNumber, index);
                             missStreak = 0;
+                            indexedNumber = Math.max(indexedNumber, index);
                         } else {
                             missStreak++;
                         }
                     }
 
+                    // 每张都刷新一次分页，保证“共 N 页”随扫描增长
                     updatePaginationUI();
-                    updateLoadingMore();
-                    ensureLoading(currentPage);
 
-                    if (missStreak >= MAX_MISSES) {
-                        // 连续几张都探测不到：到底了
-                        for (let i = index; i < index + MAX_MISSES; i++) {
-                            const p = Math.ceil(i / IMAGES_PER_PAGE);
-                            const s = getSlot(p);
-                            s.pending.delete(i);
-                            s.started.delete(i);
-                            s.failed.delete(i);
-                        }
-                        scanDone = true;
-                        break;
-                    }
+                    if (missStreak >= MAX_MISSES) break;
 
-                    scanCursor++;
-                    await sleep(SCAN_DELAY);
+                    index++;
+                    scanCursor = index;
+                    await sleep(20);
                 }
 
                 scanDone = true;
                 scanRunning = false;
 
-                if (currentPage > Math.max(1, knownPages())) {
-                    currentPage = Math.max(1, knownPages());
-                    renderPage();
-                } else {
-                    ensureLoading(currentPage);
-                    renderPage();
+                // 收尾：丢掉越界的“空页”，并把当前页夹回真实范围内
+                pruneBeyondEnd();
+                if (currentPage > finalPages()) {
+                    currentPage = finalPages();
                 }
-                updatePaginationUI();
-                updateLoadingMore();
-                maybeScheduleAdvance();
+                if (currentPage < 1) currentPage = 1;
+                renderPage();
+            }
+
+            function pruneBeyondEnd() {
+                const maxPage = finalPages();
+                pageCache.forEach((slot, page) => {
+                    if (page <= maxPage) return;
+                    pageCache.delete(page);
+                });
+            }
+
+            // 当前页补图器：访问到某一页时，确保这一页正在被探测
+            function startFiller() {
+                setInterval(() => {
+                    if (document.hidden) return;
+                    const slot = getSlot(currentPage);
+                    if (slot.pending.size > 0) return;
+                    if (!pageFullyLoaded(currentPage)) loadPage(currentPage);
+                }, 1200);
             }
 
             function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-            // ---------- 自动翻页 ----------
+            // ---------- 自动翻页（默认关闭） ----------
 
-            function clearAdvanceTimers() {
-                advanceTimers.forEach(t => clearTimeout(t));
-                advanceTimers.clear();
+            function clearAdvanceTimer() {
+                if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
             }
 
             function maybeScheduleAdvance() {
-                const page = currentPage;
-                if (!pageFullyLoaded(page)) return;
-                if (nextPageReady(page + 1)) return;
-                if (advanceTimers.has(page)) return;
+                if (!AUTO_ADVANCE_DELAY) return;
+                if (advanceTimer) return;
+                if (!pageFullyLoaded(currentPage)) return;
+                if (!canGoNext()) return;
 
-                const wait = Math.max(0, ADVANCE_INTERVAL - (Date.now() - lastAdvanceAt));
-                const timer = setTimeout(() => {
-                    advanceTimers.delete(page);
+                const wait = Math.max(0, AUTO_ADVANCE_DELAY - (Date.now() - lastAdvanceAt));
+                const page = currentPage;
+                advanceTimer = setTimeout(() => {
+                    advanceTimer = null;
                     if (page !== currentPage) return;
-                    if (!pageFullyLoaded(page) || nextPageReady(page + 1)) return;
+                    if (!pageFullyLoaded(currentPage) || !canGoNext()) return;
                     lastAdvanceAt = Date.now();
                     currentPage = page + 1;
                     renderPage();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, wait);
-                advanceTimers.set(page, timer);
             }
 
             // ---------- 翻页控件 ----------
@@ -702,24 +688,25 @@
             }
 
             function updatePaginationUI() {
-                prevBtn.disabled = currentPage === 1;
-                nextBtn.disabled = nextPageReady(currentPage + 1) ? false : !(currentPage < knownPages() && !scanDone);
+                prevBtn.disabled = currentPage <= 1;
+                nextBtn.disabled = !canGoNext();
 
-                // 扫到底之前不显示“共 ? 页”，而是显示已经确认的页数 + “…”
-                const known = Math.max(1, knownPages());
-                if (!scanDone) {
-                    totalPagesSpan.textContent = known + '…';
-                    pageInput.max = Math.max(1, known + 1);
+                if (indexedNumber === 0 && scanDone) {
+                    totalPagesSpan.textContent = '1';
+                    pageInput.max = '1';
+                } else if (scanDone) {
+                    totalPagesSpan.textContent = String(finalPages());
+                    pageInput.max = String(finalPages());
                 } else {
-                    totalPagesSpan.textContent = String(Math.max(1, Math.ceil(indexedNumber / IMAGES_PER_PAGE) || 1));
-                    pageInput.max = totalPagesSpan.textContent;
+                    // 扫描中：显示已确认页数 + “…”，表示后面可能还有
+                    totalPagesSpan.textContent = knownPages() + '…';
+                    pageInput.max = String(knownPages() + 1);
                 }
                 pageInput.value = currentPage;
             }
 
             function goToPage(page) {
-                const maxPage = scanDone ? Math.max(1, knownPages()) : knownPages() + 1;
-                page = Math.min(Math.max(1, page), maxPage);
+                page = Math.min(Math.max(1, page), navMax());
                 if (page === currentPage) { pageInput.value = currentPage; return; }
                 currentPage = page;
                 renderPage();
@@ -731,7 +718,7 @@
             });
 
             nextBtn.addEventListener('click', () => {
-                if (!nextBtn.disabled) goToPage(currentPage + 1);
+                if (canGoNext()) goToPage(currentPage + 1);
             });
 
             pageInput.addEventListener('change', (e) => {
