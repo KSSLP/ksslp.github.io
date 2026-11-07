@@ -82,6 +82,8 @@
             margin-top: 0.5rem; padding: 0.4rem 1.1rem; font-size: 0.85rem; cursor: pointer;
             color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 999px;
         }
+        #back-btn { display: block; margin: 1.5rem auto 0; }
+        #back-btn:hover { background: #f3f7ff; }
 
         .content-section { display: none; }
         .content-section.active { display: block; animation: fadeIn 0.6s ease both; }
@@ -139,17 +141,17 @@
         <div id="verify-section">
             <div class="page-title">请输入私密相册密码</div>
             <form class="password-form" id="password-form" onsubmit="return false;">
-                <input type="password" class="password-input" id="password-input" placeholder="请输入密码" autocomplete="off">
+                <input type="text" class="password-input" id="password-input" placeholder="请输入密码" autocomplete="off" autocapitalize="off" spellcheck="false">
                 <div class="error-msg" id="error-msg">密码不正确哦，再想想~</div>
-                <button type="submit" class="submit-btn" id="submit-btn" disabled>验证并查看</button>
-                <div class="status-msg" id="status-msg">正在加载密码配置...</div>
+                <button type="submit" class="submit-btn" id="submit-btn">验证并查看</button>
+                <div class="status-msg" id="status-msg">输入密码后，点“验证并查看”就会显示对应的照片</div>
             </form>
         </div>
 
         <div class="content-section" id="content-section">
-            <div class="page-title">🎉 私密相册已解锁 🎉</div>
+            <div class="page-title" id="content-title">🎉 私密相册已解锁 🎉</div>
             <div class="gallery-container" id="gallery-container"></div>
-            <div class="loading-status" id="loading-status">正在加载照片列表...</div>
+            <button type="button" class="retry-btn" id="back-btn">返回，换个密码</button>
         </div>
     </div>
 
@@ -227,132 +229,107 @@
             const submitBtn = document.getElementById('submit-btn');
             const statusMsg = document.getElementById('status-msg');
             const galleryContainer = document.getElementById('gallery-container');
-            const loadingStatus = document.getElementById('loading-status');
+            const contentTitle = document.getElementById('content-title');
+            const backBtn = document.getElementById('back-btn');
 
-            let validHash = null;
-
-            async function loadPasswordHash() {
-                try {
-                    const response = await fetch('private password?t=' + Date.now(), { cache: 'no-store' });
-                    if (!response.ok) throw new Error('无法读取密码文件');
-
-                    const text = await response.text();
-                    validHash = text.replace(/^\uFEFF/, '').trim();
-                    if (!validHash) throw new Error('密码文件为空');
-
-                    statusMsg.style.display = 'none';
-                    submitBtn.disabled = false;
-                } catch (err) {
-                    console.error("读取密码失败:", err);
-                    statusMsg.innerHTML = '无法加载密码配置，请检查 private password 文件是否存在。<br><button class="retry-btn" onclick="location.reload()">点此重试</button>';
-                    statusMsg.style.color = "#d64545";
-                    submitBtn.disabled = true;
-                }
-            }
-
-            loadPasswordHash();
+            const PHOTO_DIR = 'private_photo/';
+            const PHOTO_EXT = '.jpg';
 
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
-                if (validHash) validatePassword();
+                checkPassword();
             });
 
-            function validatePassword() {
+            // ==========================================
+            // 输入什么，就展示 private_photo/什么.jpg
+            // 找不到这张图 => 密码错误
+            // ==========================================
+            function checkPassword() {
                 const answer = input.value.trim();
                 if (!answer) return showError("请输入密码哦~");
 
-                const inputHash = sha256(answer);
-
-                if (inputHash.toLowerCase() === validHash.toLowerCase()) {
-                    verifySection.style.display = 'none';
-                    contentSection.classList.add('active');
-                    document.title = "私密相册";
-                    input.value = '';
-                    errorMsg.classList.remove('show');
-
-                    loadPhotoList();
-                } else {
-                    showError("密码不正确哦，再想想~");
-                    input.value = '';
-                    input.focus();
+                // 去掉路径/非法字符，防止跳出 private_photo 目录或生成怪文件名
+                if (/[\/\\]|\.\./.test(answer) || /[<>:"|?*\x00-\x1f]/.test(answer)) {
+                    return failPassword();
                 }
+
+                submitBtn.disabled = true;
+                statusMsg.style.display = 'block';
+                statusMsg.style.color = '';
+                statusMsg.textContent = '正在查找对应的照片...';
+
+                const url = PHOTO_DIR + encodeURIComponent(answer) + PHOTO_EXT;
+
+                probeImage(url).then((ok) => {
+                    submitBtn.disabled = false;
+                    statusMsg.style.display = 'none';
+
+                    if (ok) {
+                        showPhoto(answer, url);
+                    } else {
+                        failPassword();
+                    }
+                });
+            }
+
+            function showPhoto(name, url) {
+                verifySection.style.display = 'none';
+                contentSection.classList.add('active');
+                document.title = "私密相册";
+                errorMsg.classList.remove('show');
+
+                contentTitle.textContent = '🎉 私密相册已解锁 🎉';
+
+                galleryContainer.innerHTML = '';
+                const wrapper = document.createElement('div');
+                wrapper.className = 'photo-item';
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'photo-name';
+                nameEl.textContent = name;
+                wrapper.appendChild(nameEl);
+
+                const imgEl = document.createElement('img');
+                imgEl.alt = name;
+                imgEl.src = url;
+                wrapper.appendChild(imgEl);
+
+                galleryContainer.appendChild(wrapper);
+
+                input.value = '';
+            }
+
+            function failPassword() {
+                showError("密码不正确哦，再想想~");
+                input.value = '';
+                input.focus();
             }
 
             function showError(msg) {
                 errorMsg.textContent = msg;
                 errorMsg.classList.add('show');
-                setTimeout(() => { errorMsg.classList.remove('show'); }, 2000);
             }
 
-            // ==========================================
-            // 读取 JSON 并渲染照片（一张到位就显示一张）
-            // ==========================================
-            async function loadPhotoList() {
-                try {
-                    const response = await fetch('private photo.json?t=' + Date.now(), { cache: 'no-store' });
-                    if (!response.ok) throw new Error('无法读取 private photo.json');
-
-                    const photoNames = await response.json();
-
-                    if (!photoNames || photoNames.length === 0) {
-                        loadingStatus.textContent = '目前私密相册里没有照片哦。';
-                        return;
-                    }
-
-                    loadingStatus.style.display = 'none';
-                    galleryContainer.innerHTML = '';
-                    const extensions = ['jpg', 'JPG', 'jpeg', 'JPEG', 'png', 'PNG', 'webp', 'WEBP'];
-
-                    for (let i = 0; i < photoNames.length; i++) {
-                        const name = photoNames[i];
-
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'photo-item';
-                        wrapper.style.animationDelay = `${Math.min(i * 0.1, 1)}s`;
-
-                        const nameEl = document.createElement('div');
-                        nameEl.className = 'photo-name';
-                        nameEl.textContent = name;
-                        wrapper.appendChild(nameEl);
-
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'photo-placeholder';
-                        placeholder.innerHTML = '<div class="shimmer"></div><div class="shimmer" style="width:40%"></div><div class="spinner"></div>';
-                        wrapper.appendChild(placeholder);
-                        galleryContainer.appendChild(wrapper);
-
-                        // 自动探测后缀
-                        let foundUrl = null;
-                        for (const ext of extensions) {
-                            const imgSrc = `./private_photo/${name}.${ext}`;
-                            if (await probeImage(imgSrc)) { foundUrl = imgSrc; break; }
-                        }
-
-                        if (foundUrl) {
-                            const imgEl = document.createElement('img');
-                            imgEl.alt = name;
-                            imgEl.loading = 'lazy';
-                            imgEl.src = foundUrl;
-                            wrapper.replaceChild(imgEl, placeholder);
-                        } else {
-                            wrapper.style.display = 'none';
-                        }
-                    }
-                } catch (err) {
-                    console.error("加载照片列表失败:", err);
-                    loadingStatus.style.display = 'none';
-                    galleryContainer.innerHTML = '<div class="loading-status" style="color: #d64545;">无法加载照片，请确保根目录下有正确的 <b>private photo.json</b> 文件。</div>';
-                }
-            }
+            backBtn.addEventListener('click', () => {
+                contentSection.classList.remove('active');
+                galleryContainer.innerHTML = '';
+                verifySection.style.display = '';
+                document.title = "私密相册";
+                errorMsg.classList.remove('show');
+                input.value = '';
+                input.focus();
+            });
 
             function probeImage(url) {
                 return new Promise((resolve) => {
                     const img = new Image();
                     img.onload = () => resolve(true);
                     img.onerror = () => resolve(false);
-                    img.src = url;
+                    img.src = url + '?t=' + Date.now();
                 });
             }
+
+            input.focus();
         });
     </script>
 </body>
