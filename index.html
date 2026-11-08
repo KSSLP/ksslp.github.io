@@ -40,6 +40,25 @@
         .orb-2 { width: 380px; height: 380px; bottom: -120px; right: -100px; background: radial-gradient(circle, rgba(143, 123, 240, 0.5), transparent 70%); animation-delay: -6s; }
         .orb-3 { width: 260px; height: 260px; top: 45%; right: 4%; background: radial-gradient(circle, rgba(94, 209, 195, 0.45), transparent 70%); opacity: 0.4; animation-delay: -10s; }
 
+        main { width: 100%; display: flex; flex-direction: column; align-items: center; }
+
+        .comment-card {
+            width: 100%; max-width: 880px; margin: 2rem auto 0; padding: 2.5rem 2.5rem 2rem;
+            background: var(--paper); border-radius: 2.5rem; border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 30px 60px -30px rgba(0, 20, 40, 0.35), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+            text-align: left; animation: cardEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+        .comment-title {
+            margin: 0 0 1.5rem; font-size: clamp(1.2rem, 3.6vw, 1.5rem); font-weight: 700; text-align: center;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .comment-card .tk-submit { margin-bottom: 1.5rem !important; }
+        @media (max-width: 480px) {
+            .comment-card { padding: 1.75rem 1.1rem 1.5rem; border-radius: 2rem; }
+        }
+
         .top-left-link {
             position: fixed; top: 1rem; left: 1rem; z-index: 10;
             padding: 0.5rem 0.95rem; border-radius: 999px;
@@ -107,10 +126,17 @@
     <div class="bg-orb orb-2"></div>
     <div class="bg-orb orb-3"></div>
 
-    <div class="welcome-card">
-        <div class="welcome-text" id="welcome-text">上海市包头中学2027届3班</div>
-        <a href="content.html" class="go-button" role="button">Let's go!!!</a>
-    </div>
+    <main>
+        <div class="welcome-card">
+            <div class="welcome-text" id="welcome-text">上海市包头中学2027届3班</div>
+            <a href="content.html" class="go-button" role="button">Let's go!!!</a>
+        </div>
+
+        <section class="comment-card">
+            <div class="comment-title">💬 留言板</div>
+            <div id="tcomment"></div>
+        </section>
+    </main>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -126,6 +152,28 @@
                 textElement.appendChild(span);
             }
         });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js"></script>
+    <script>
+        (function initTwikoo() {
+            if (typeof twikoo === 'undefined') {
+                // CDN 没加载出来（被拦截/网络抖动）时稍后再试，最多 20 次
+                if (window.__twikooRetry__ < 20) {
+                    window.__twikooRetry__ = (window.__twikooRetry__ || 0) + 1;
+                    setTimeout(initTwikoo, 300);
+                } else {
+                    document.getElementById('tcomment').innerHTML =
+                        '<p style="color:#d64545;text-align:center;">留言板加载失败，请刷新页面或在网络通畅时重试。</p>';
+                }
+                return;
+            }
+            twikoo.init({
+                envId: 'https://twikoo.seeout360.workers.dev',
+                el: '#tcomment',
+                lang: 'zh-CN'
+            });
+        })();
     </script>
 </body>
 </html>
