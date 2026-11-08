@@ -154,25 +154,57 @@
         });
     </script>
 
-    <script src="https://cdn.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js"></script>
     <script>
-        (function initTwikoo() {
-            if (typeof twikoo === 'undefined') {
-                // CDN 没加载出来（被拦截/网络抖动）时稍后再试，最多 20 次
-                if (window.__twikooRetry__ < 20) {
-                    window.__twikooRetry__ = (window.__twikooRetry__ || 0) + 1;
-                    setTimeout(initTwikoo, 300);
-                } else {
-                    document.getElementById('tcomment').innerHTML =
-                        '<p style="color:#d64545;text-align:center;">留言板加载失败，请刷新页面或在网络通畅时重试。</p>';
-                }
-                return;
+        (function () {
+            // jsdelivr 偶尔 502 / 被拦截，准备了多个镜像顺序尝试
+            var CDN_LIST = [
+                'https://cdn.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js',
+                'https://fastly.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js',
+                'https://unpkg.com/twikoo@1.6.44/dist/twikoo.min.js',
+                'https://cdn.bootcdn.net/ajax/libs/twikoo/1.6.44/twikoo.min.js',
+                'https://cdn.staticfile.org/twikoo/1.6.44/twikoo.min.js'
+            ];
+
+            function showFail(msg) {
+                var el = document.getElementById('tcomment');
+                if (!el) return;
+                if (msg) console.error('[Twikoo]', msg);
+                el.innerHTML = '<p style="color:#d64545;text-align:center;line-height:1.8;">留言板加载失败，请刷新页面重试。</p>';
             }
-            twikoo.init({
-                envId: 'https://twikoo.seeout360.workers.dev',
-                el: '#tcomment',
-                lang: 'zh-CN'
-            });
+
+            function loadScript(i) {
+                if (i >= CDN_LIST.length) return showFail('所有 CDN 都加载失败');
+                var s = document.createElement('script');
+                s.src = CDN_LIST[i];
+                s.onload = function () {
+                    if (typeof twikoo === 'undefined') return loadScript(i + 1);
+                    startTwikoo();
+                };
+                s.onerror = function () {
+                    console.warn('[Twikoo] CDN 加载失败，换下一个：' + CDN_LIST[i]);
+                    loadScript(i + 1);
+                };
+                document.body.appendChild(s);
+            }
+
+            function startTwikoo() {
+                twikoo.init({
+                    envId: 'https://twikoo.seeout360.workers.dev',
+                    el: '#tcomment',
+                    lang: 'zh-CN',
+                    // 隐藏“网址”输入框（Twikoo 默认就有，不是必填），只留昵称 / 邮箱 / 评论
+                    style: '.tk-meta-input > .el-input:nth-child(3){display:none!important}' +
+                           '.tk-meta-input{grid-template-columns:repeat(2,minmax(0,1fr))!important}'
+                }).catch(function (err) {
+                    showFail(err && err.message ? err.message : err);
+                });
+            }
+
+            if (document.body) {
+                loadScript(0);
+            } else {
+                document.addEventListener('DOMContentLoaded', function () { loadScript(0); });
+            }
         })();
     </script>
 </body>
