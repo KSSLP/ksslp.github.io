@@ -108,8 +108,56 @@
         }
         .error-overlay svg { width: 52px; height: 52px; fill: #55637c; margin-bottom: 0.5rem; }
 
+        .comment-card {
+            width: 100%; max-width: 1000px; margin: 2rem auto 0; padding: 2.2rem 2rem;
+            background: var(--paper); border-radius: 2rem; border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 30px 60px -34px rgba(0, 20, 40, 0.35), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+            -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+            animation: cardEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+        .comment-title {
+            margin: 0 0 1.2rem; font-size: clamp(1.25rem, 3.2vw, 1.6rem); font-weight: 800; text-align: center;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .comment-card .tk-submit { margin-bottom: 1.5rem !important; }
+
+        /* 评论区上方的“当前集数”提示 + 精简评论列表 */
+        .comment-ep { margin: -0.4rem 0 1rem; text-align: center; color: var(--accent-1); font-weight: 700; font-size: 0.95rem; }
+        .comment-ep:empty { display: none; }
+        .ep-empty { text-align: center; color: var(--ink-soft); font-size: 0.92rem; padding: 0.6rem 0; }
+        .ep-comment { padding: 0.75rem 0.2rem; border-bottom: 1px solid var(--line); }
+        .ep-comment:last-child { border-bottom: none; }
+        .ep-comment-head { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.86rem; color: var(--ink-soft); margin-bottom: 0.25rem; }
+        .ep-comment-head b { color: var(--ink); }
+        .ep-comment-body { font-size: 0.95rem; line-height: 1.75; word-break: break-word; white-space: pre-wrap; }
+
+        /* 发表评论表单 */
+        .ep-form { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+        .ep-form-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .ep-input, .ep-textarea {
+            font: inherit; color: var(--ink); background: #fff;
+            border: 1px solid var(--line); border-radius: 0.7rem; padding: 0.6rem 0.8rem;
+            outline: none; transition: border-color .2s, box-shadow .2s;
+        }
+        .ep-form-row .ep-input { flex: 1 1 12rem; min-width: 0; }
+        .ep-textarea { width: 100%; resize: vertical; line-height: 1.7; }
+        .ep-input:focus, .ep-textarea:focus { border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(91,141,239,.15); }
+        .ep-form-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+        .ep-msg { font-size: 0.85rem; color: var(--ink-soft); }
+        .ep-msg.bad { color: #d64545; }
+        .ep-submit {
+            font: inherit; font-weight: 700; color: #fff; border: none; cursor: pointer;
+            padding: 0.6rem 1.4rem; border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 6px 16px rgba(91,141,239,.28); transition: transform .15s, opacity .2s;
+        }
+        .ep-submit:hover { transform: translateY(-1px); }
+        .ep-submit:disabled { opacity: .6; cursor: default; transform: none; }
+
         @media (max-width: 768px) {
             .video-card { padding: 2rem 1.25rem; border-radius: 2rem; }
+            .comment-card { padding: 1.6rem 1.1rem; border-radius: 1.6rem; }
             .header-row { flex-direction: column; align-items: flex-start; }
             .download-btn { width: 100%; justify-content: center; }
             .episodes-container { max-height: 150px; }
@@ -151,6 +199,12 @@
             </div>
         </div>
     </div>
+
+    <section class="comment-card" id="comment-card">
+        <h2 class="comment-title">💬 评论区</h2>
+        <div class="comment-ep" id="comment-ep"></div>
+        <div id="tcomment"></div>
+    </section>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -194,35 +248,51 @@
                     let buttonText = parts[0];
                     const videoTitle = parts.slice(1).join('.');
                     if (/^\d+$/.test(buttonText)) buttonText = `第 ${buttonText} 集`;
-                    return { buttonText, videoTitle };
+                    return { buttonText, videoTitle, order: '' };
                 }
-                return { buttonText: nameWithoutExt, videoTitle: '' };
+                return { buttonText: nameWithoutExt, videoTitle: '', order: '' };
             }
 
             function renderEpisodeButtons() {
                 episodesContainer.innerHTML = '';
 
                 videoList.forEach((filename, idx) => {
-                    const { buttonText } = parseFilename(filename);
+                    const info = parseFilename(filename);
+                    info.order = String(idx + 1);   // 集号 = 在 list.json 里的顺序
 
                     const btn = document.createElement('button');
                     btn.className = 'ep-btn';
-                    btn.textContent = buttonText;
+                    btn.textContent = info.buttonText;
                     btn.style.animationDelay = `${Math.min(idx * 0.05, 1)}s`;
 
                     btn.addEventListener('click', () => {
                         document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
-                        loadEpisode(filename, parseFilename(filename).videoTitle);
+                        loadEpisode(filename, info.videoTitle);
+                        showEpisodeComments(info);
                     });
 
                     episodesContainer.appendChild(btn);
                 });
 
                 if (videoList.length > 0) {
+                    const firstInfo = parseFilename(videoList[0]);
+                    firstInfo.order = '1';
                     const firstBtn = episodesContainer.querySelector('.ep-btn');
                     if (firstBtn) firstBtn.classList.add('active');
-                    loadEpisode(videoList[0], parseFilename(videoList[0]).videoTitle || '');
+                    loadEpisode(videoList[0], firstInfo.videoTitle || '');
+                    showEpisodeComments(firstInfo);
+                }
+            }
+
+            // 通知评论区切换到某一集（评论区脚本若还没准备好会自行记住）
+            // 集号用列表顺序 order，与文件名无关，改名也不会丢评论
+            function showEpisodeComments(info) {
+                const payload = { order: info.order, label: info.buttonText };
+                if (window.YSKBL && typeof window.YSKBL.setEpisode === 'function') {
+                    window.YSKBL.setEpisode(payload.order, payload.label);
+                } else {
+                    window.__yskblPendingEpisode__ = payload;
                 }
             }
 
@@ -259,6 +329,409 @@
 
             fetchVideoList();
         });
+    </script>
+
+    <script>
+        // ==========================================
+        // Twikoo 评论区：按“集数”隔离
+        // 视频是同一页面里切换 <video> 源，URL 不变，
+        // 所以这里显式给每集一个 path（/yskbl/<集 ID>），
+        // 避免所有集数共用一个评论区。
+        // 与 index.html 的留言板（path 默认为 /）也互不干扰。
+        // ==========================================
+        (function () {
+            var ENV_ID = 'https://twikoo.btzx2027class3.dpdns.org';
+            var RENDER_KEY = '__yskbl_comment_path__';
+            // jsdelivr 偶尔 502 / 被拦截，准备了多个镜像顺序尝试
+            var CDN_LIST = [
+                'https://cdn.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js',
+                'https://fastly.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js',
+                'https://unpkg.com/twikoo@1.6.44/dist/twikoo.min.js',
+                'https://cdn.bootcdn.net/ajax/libs/twikoo/1.6.44/twikoo.min.js',
+                'https://cdn.staticfile.org/twikoo/1.6.44/twikoo.min.js'
+            ];
+            // 评论已加载（Twikoo 就绪）后才值得按集切换
+            var ready = false;
+            // 当前应该展示的集数：{ path, label }
+            var pending = null;
+            // 等待播放器给出当前集的轮询计时器
+            var timer = null;
+            // 渲染序号：切集后丢弃上一条迟到的请求结果，避免串集
+            var renderSeq = 0;
+            var currentPath = '/yskbl/1';
+            var currentLabel = '';
+
+            function commentBox() {
+                return document.getElementById('tcomment');
+            }
+
+            function showMsg(text, isError) {
+                var el = commentBox();
+                if (!el) return;
+                var color = isError ? '#d64545' : 'var(--ink-soft, #55637c)';
+                el.innerHTML = '<p style="color:' + color + ';text-align:center;line-height:1.8;">' + text + '</p>';
+            }
+
+            // 每集一个独立 path：/yskbl/<集号>
+            // 集号 = 在 list.json 里的位置（第 1 个元素就是 1），与文件名无关，
+            // 所以改标题、改文件名都不会让已有评论“搬家”。
+            function episodePath(order) {
+                return '/yskbl/' + String(order);
+            }
+
+            // 真正渲染某一集的评论
+            function renderEpisode(path, label) {
+                pending = { path: path, label: label };
+                // 页面刷新时，Twikoo 可能从 localStorage 里恢复上一次的评论，
+                // 这里按 path 独立记录“最后渲染过的集”，避免恢复出错集的评论
+                try { localStorage.setItem(RENDER_KEY, path + '|' + (label || '')); } catch (e) {}
+
+                // 无论在等待还是渲染，都先把集数打在评论区上方，便于确认切换生效
+                var titleEl = document.getElementById('comment-ep');
+                if (titleEl) titleEl.textContent = label ? '当前：' + label : '';
+
+                if (!ready || typeof twikoo === 'undefined') return;
+
+                var el = commentBox();
+                if (!el) return;
+                // 容器在加载中显示文案时 innerHTML 有内容，这里统一清空
+                el.innerHTML = '';
+                ++renderSeq;
+                currentPath = path;
+                currentLabel = label || '';
+
+                // 评论正文统一按“换行 = <br>”渲染，避免把整段当纯文本
+                // 每条评论只保留一层容器，不再往 #tcomment 里塞额外结构
+                renderCommentList(path, label);
+            }
+
+            // 时间：Twikoo 老版本返回毫秒时间戳字符串，新版本返回 ISO 日期字符串
+            function formatTime(v) {
+                if (!v) return '';
+                var d = /^\d+$/.test(String(v)) ? new Date(Number(v)) : new Date(String(v));
+                if (isNaN(d.getTime())) return String(v);
+                function p(n) { return n < 10 ? '0' + n : '' + n; }
+                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+                    ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+
+            // 正文：评论内容在库里是 HTML（Twikoo 自带 <p>、<br>、<em> 等），
+            // 这里做「白名单」清洗：只保留少量行内标签，其余全部转成纯文本，
+            // 既不显示 <p> 这类源码，也不会执行脚本。
+            var ALLOWED_INLINE = {
+                B: 1, STRONG: 1, EM: 1, I: 1, U: 1, S: 1, DEL: 1, CODE: 1, SPAN: 1,
+                A: 1, SUB: 1, SUP: 1, BR: 1
+            };
+            function sanitizeNode(node, out) {
+                var kids = node.childNodes || [];
+                for (var i = 0; i < kids.length; i++) {
+                    var k = kids[i];
+                    if (k.nodeType === 3) {              // 文本节点
+                        out.push(escText(k.nodeValue));
+                    } else if (k.nodeType === 1) {       // 元素节点
+                        var tag = String(k.nodeName || '').toUpperCase();
+                        if (tag === 'BR') { out.push('<br>'); continue; }
+                        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'IFRAME') continue;
+                        if (ALLOWED_INLINE[tag]) {
+                            var name = tag.toLowerCase();
+                            if (tag === 'A') {
+                                var href = k.getAttribute && k.getAttribute('href');
+                                // 只放行 http(s)；危险的 javascript: 链接丢标签、留文字
+                                if (!/^https?:\/\/[^\s"'<>]+$/i.test(href || '')) {
+                                    sanitizeNode(k, out);
+                                    continue;
+                                }
+                                out.push('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">');
+                                sanitizeNode(k, out);
+                                out.push('</a>');
+                                continue;
+                            }
+                            out.push('<' + name + '>');
+                            sanitizeNode(k, out);
+                            out.push('</' + name + '>');
+                        } else {
+                            sanitizeNode(k, out);        // 块级标签（p/div/li…）丢标签、留内容
+                        }
+                    }
+                }
+                return out;
+            }
+            // 文本节点只需要转义 < 和 >（& 已经被解析器还原过，不能再转一次）
+            function escText(s) {
+                return String(s == null ? '' : s)
+                    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+            function formatBody(s) {
+                var raw = String(s || '');
+                if (raw.indexOf('<') < 0) {
+                    // 纯文本：只做转义和换行
+                    return escText(raw).replace(/\r?\n/g, '<br>');
+                }
+                if (typeof document === 'undefined' || !document.createElement) {
+                    return escText(raw);
+                }
+                try {
+                    var box = document.createElement('div');
+                    box.innerHTML = raw;              // 解析在游离节点里进行，不会加载图片/执行脚本
+                    var parts = sanitizeNode(box, []);
+                    return parts.join('').replace(/^(\s*(<br>)*)+|((<br>)*\s*)+$/g, '');
+                } catch (e) {
+                    return esc(raw);
+                }
+            }
+
+            // ------------------------------------------
+            // 读取评论：只用 GET_RECENT_COMMENTS（这个云函数版本必支持）
+            // GET_COMMENTS 在本站后端返回 1001「请更新 Twikoo 云函数」，不可用
+            // 返回的每一项都带 url 字段（就是 path），所以前端按 url 精确过滤
+            // ------------------------------------------
+            function fetchRecent(cb) {
+                var body = JSON.stringify({
+                    event: 'GET_RECENT_COMMENTS',
+                    pageSize: 100,
+                    includeReply: false,
+                    envId: ENV_ID
+                });
+                var done = false;
+                function finish(err, data) {
+                    if (done) return;
+                    done = true;
+                    cb(err, data);
+                }
+                if (typeof fetch !== 'function') return finish(new Error('fetch unavailable'));
+                try {
+                    fetch(ENV_ID + '/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: body
+                    }).then(function (r) { return r.json(); }).then(function (res) {
+                        if (!res || (res.code && res.code !== 0)) return finish(res || new Error('empty'));
+                        finish(null, res.data || []);
+                    }).catch(function (e) { finish(e); });
+                } catch (e) {
+                    finish(e);
+                }
+            }
+
+            // 取全站最近评论 → 只留 url 等于本集 path 的，按时间倒序
+            function pickByPath(list, path) {
+                return (list || []).filter(function (c) {
+                    return c && (c.url === path || c.path === path);
+                }).sort(function (a, b) {
+                    return (Number(b.created) || 0) - (Number(a.created) || 0);
+                });
+            }
+
+            function renderCommentList(path, label) {
+                var el = commentBox();
+                var wrap = document.createElement('div');
+                wrap.className = 'ep-comments';
+                if (label) wrap.setAttribute('data-tk-ep', label);
+                wrap.innerHTML = '<p class="ep-empty">评论加载中…</p>';
+                el.appendChild(wrap);
+
+                var seq = renderSeq;
+
+                fetchRecent(function (err, data) {
+                    if (seq !== renderSeq) return; // 期间又切了别的集，丢弃旧结果
+                    if (err) {
+                        console.error('[Twikoo]', err);
+                        wrap.innerHTML = '<p class="ep-empty">评论加载失败，请刷新重试。</p>';
+                        buildForm(label);
+                        return;
+                    }
+                    var items = pickByPath(data, path);
+                    if (items.length === 0) {
+                        wrap.innerHTML = '<p class="ep-empty">这一集还没有评论，做个第一个留言的人吧～</p>';
+                        buildForm(label);
+                        return;
+                    }
+                    wrap.innerHTML = items.map(function (c) {
+                        var name = esc(c.nick);
+                        return '<div class="ep-comment' + (c.isReply ? ' ep-comment-reply' : '') + '">' +
+                            '<div class="ep-comment-head"><b>' + name + '</b>' +
+                            '<span>' + formatTime(c.created) + '</span></div>' +
+                            '<div class="ep-comment-body">' + formatBody(c.comment) + '</div></div>';
+                    }).join('');
+                    buildForm(label);
+                });
+            }
+
+            // ------------------------------------------
+            // 评论列表下方：发表评论表单（按当前集的 path 提交）
+            // 读取走 GET_COMMENTS（上面），写入走 submitComment
+            // ------------------------------------------
+            var NICK_KEY = '__yskbl_nick__';
+            var MAIL_KEY = '__yskbl_mail__';
+
+            function readStore(k) {
+                try { return localStorage.getItem(k) || ''; } catch (e) { return ''; }
+            }
+            function writeStore(k, v) {
+                try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {}
+            }
+
+            function esc(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            function buildForm(label) {
+                commentBox().querySelectorAll('.ep-form').forEach(function (n) { n.remove(); });
+                var box = document.createElement('div');
+                box.className = 'ep-form';
+                box.innerHTML =
+                    '<div class="ep-form-row">' +
+                        '<input class="ep-input" data-ep="nick" maxlength="20" placeholder="昵称（必填）" value="' + esc(readStore(NICK_KEY)) + '">' +
+                        '<input class="ep-input" data-ep="mail" maxlength="60" placeholder="邮箱（选填，不公开）" value="' + esc(readStore(MAIL_KEY)) + '">' +
+                    '</div>' +
+                    '<textarea class="ep-textarea" data-ep="text" rows="3" maxlength="500" placeholder="说点什么吧…"></textarea>' +
+                    '<div class="ep-form-foot">' +
+                        '<span class="ep-msg" data-ep="msg"></span>' +
+                        '<button class="ep-submit" data-ep="submit" type="button">发表评论</button>' +
+                    '</div>';
+                commentBox().appendChild(box);
+                // 表单要先追加到页面里，才能用 querySelector 取到子元素
+                var btn = box.querySelector('[data-ep="submit"]');
+                if (btn) btn.addEventListener('click', function () {
+                    submitEpisodeComment(box, btn);
+                });
+                return box;
+            }
+
+            // ------------------------------------------
+            // 发表评论：Twikoo 1.6.x 的浏览器包里没有 submitComment，
+            // 所以自己 POST COMMENT_SUBMIT（和组件内部发的是同一个事件）
+            // ------------------------------------------
+            function postComment(payload, cb) {
+                var done = false;
+                function finish(err, data) {
+                    if (done) return;
+                    done = true;
+                    cb(err, data);
+                }
+                if (typeof fetch !== 'function') return finish(new Error('fetch unavailable'));
+                fetch(ENV_ID + '/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(function (r) { return r.json(); }).then(function (res) {
+                    if (!res || (res.code && res.code !== 0)) {
+                        var e = new Error((res && res.message) || 'submit failed');
+                        e.code = res && res.code;
+                        return finish(e);
+                    }
+                    finish(null, res);
+                }).catch(function (e) { finish(e); });
+            }
+
+            function submitEpisodeComment(box, btn) {
+                function pick(name) { return box.querySelector('[data-ep="' + name + '"]'); }
+                var nick = (pick('nick').value || '').trim();
+                var mail = (pick('mail').value || '').trim();
+                var text = (pick('text').value || '').trim();
+                var msg = pick('msg');
+                function say(t, bad) {
+                    msg.textContent = t;
+                    msg.className = 'ep-msg' + (bad ? ' bad' : '');
+                }
+                if (!nick) return say('昵称不能为空。', true);
+                if (!text) return say('评论内容不能为空。', true);
+                if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return say('邮箱格式不对。', true);
+
+                writeStore(NICK_KEY, nick);
+                writeStore(MAIL_KEY, mail);
+
+                btn.disabled = true;
+                say('发表中…', false);
+                postComment({
+                    event: 'COMMENT_SUBMIT',
+                    envId: ENV_ID,
+                    path: currentPath,
+                    url: currentPath,
+                    href: location.href,
+                    nick: nick,
+                    mail: mail,
+                    link: '',
+                    ua: navigator.userAgent,
+                    comment: text,
+                    pid: '',
+                    rid: ''
+                }, function (err) {
+                    if (err) {
+                        console.error('[Twikoo]', err);
+                        var code = err.code !== undefined && err.code !== null ? err.code : '';
+                        say('发表失败' + (code !== '' ? '（' + code + '）' : '') + '：' + (err.message || '网络错误'), true);
+                        btn.disabled = false;
+                        return;
+                    }
+                    pick('text').value = '';
+                    say('发表成功！', false);
+                    btn.disabled = false;
+                    // 刷新列表（重新拉一次，新评论才会出现）
+                    renderEpisode(currentPath, currentLabel);
+                });
+            }
+
+            function loadScript(i) {
+                if (i >= CDN_LIST.length) return showMsg('评论区加载失败，请刷新页面重试。', true);
+                var s = document.createElement('script');
+                s.src = CDN_LIST[i];
+                s.onload = function () {
+                    if (typeof twikoo === 'undefined') return loadScript(i + 1);
+                    boot();
+                };
+                s.onerror = function () {
+                    console.warn('[Twikoo] CDN 加载失败，换下一个：' + CDN_LIST[i]);
+                    loadScript(i + 1);
+                };
+                document.body.appendChild(s);
+            }
+
+            // Twikoo 脚本就绪后：如果已经有了“当前集”就渲染它，
+            // 否则等播放器读完 list.json 再调度（下方 200ms 轮询兜底）
+            function boot() {
+                if (!ready) {
+                    ready = true;
+                    if (pending) renderEpisode(pending.path, pending.label);
+                }
+                if (pending) {
+                    if (timer) { clearInterval(timer); timer = null; }
+                } else if (!timer) {
+                    var tries = 0;
+                    timer = setInterval(function () {
+                        if (pending) {
+                            clearInterval(timer); timer = null;
+                            renderEpisode(pending.path, pending.label);
+                        } else if (++tries > 150) {
+                            clearInterval(timer); timer = null;
+                        }
+                    }, 200);
+                }
+            }
+
+            // 供上方播放器脚本调用：切换某集
+            window.YSKBL = {
+                setEpisode: function (epId, label) {
+                    renderEpisode(episodePath(epId), label || '');
+                }
+            };
+
+            // 播放器脚本可能比本脚本先执行，先把它的“当前集”接过来
+            if (window.__yskblPendingEpisode__) {
+                var pe = window.__yskblPendingEpisode__;
+                pending = { path: episodePath(pe.order), label: pe.label || '' };
+                try { localStorage.setItem(RENDER_KEY, pending.path + '|' + pending.label); } catch (e) {}
+            }
+
+            showMsg('评论区加载中…', false);
+            if (document.body) {
+                loadScript(0);
+            } else {
+                document.addEventListener('DOMContentLoaded', function () { loadScript(0); });
+            }
+        })();
     </script>
 </body>
 </html>
