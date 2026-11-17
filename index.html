@@ -55,8 +55,97 @@
             -webkit-background-clip: text; background-clip: text; color: transparent;
         }
         .comment-card .tk-submit { margin-bottom: 1.5rem !important; }
+
+        /* ---------- 身份验证面板 ---------- */
+        .auth-panel {
+            margin: 0 0 1.75rem; padding: 1.25rem 1.35rem;
+            background: linear-gradient(135deg, rgba(91, 141, 239, 0.07), rgba(143, 123, 240, 0.07));
+            border: 1px solid rgba(91, 141, 239, 0.18); border-radius: 1.25rem;
+        }
+        .auth-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .auth-head__title { font-size: 0.95rem; font-weight: 700; color: var(--ink-soft); }
+        #auth-status { font-size: 0.85rem; font-weight: 600; padding: 0.22rem 0.7rem; border-radius: 999px; }
+        #auth-status.is-guest { color: #6b7280; background: rgba(107, 114, 128, 0.12); }
+        #auth-status.is-verified { color: #0f9d58; background: rgba(15, 157, 88, 0.13); }
+        #auth-status.is-busy { color: var(--accent-1); background: rgba(91, 141, 239, 0.13); }
+        #auth-status.is-error { color: #d64545; background: rgba(214, 69, 69, 0.12); }
+
+        .auth-row { display: flex; gap: 0.6rem; margin-bottom: 0.65rem; }
+        .auth-row:last-child { margin-bottom: 0; }
+        .auth-panel input[type="password"] { letter-spacing: 0.08em; }
+        .auth-panel input {
+            flex: 1; min-width: 0; padding: 0.7rem 0.95rem; font-size: 0.92rem; font-family: inherit;
+            color: var(--ink); background: #fff; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 0.8rem;
+            outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .auth-panel input:focus { border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.14); }
+        .auth-panel input:disabled { background: #f5f6f8; color: #9aa1ab; }
+        .auth-panel button {
+            flex: 0 0 auto; padding: 0.7rem 1.1rem; font-size: 0.9rem; font-weight: 600; font-family: inherit;
+            color: #fff; background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            border: none; border-radius: 0.8rem; cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+        .auth-panel button:hover:not(:disabled) { transform: translateY(-1px); }
+        .auth-panel button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .auth-panel button.ghost { color: var(--ink-soft); background: #fff; border: 1px solid rgba(0, 0, 0, 0.1); }
+        .auth-panel button.wide { flex: 1 1 100%; }
+
+        /* 登录 / 注册 切换 */
+        .auth-tabs { display: flex; gap: 0.45rem; margin-bottom: 0.85rem; }
+        .auth-panel .auth-tabs .tab {
+            flex: 1 1 0; padding: 0.5rem 0.6rem; font-size: 0.88rem; font-weight: 600;
+            color: var(--ink-soft); background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(91, 141, 239, 0.2); border-radius: 0.7rem;
+        }
+        .auth-panel .auth-tabs .tab.is-active {
+            color: #fff; background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            border-color: transparent;
+        }
+        .auth-user { display: flex; justify-content: flex-end; }
+        .auth-tip { margin: 0.7rem 0 0; font-size: 0.8rem; line-height: 1.6; color: var(--ink-soft); }
+
+        /* ---------- 留言列表（自绘） ---------- */
+        .cm-list { display: flex; flex-direction: column; gap: 1.15rem; margin-bottom: 1.75rem; }
+        .cm-item { padding-bottom: 1.05rem; border-bottom: 1px solid rgba(0, 0, 0, 0.07); }
+        .cm-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .cm-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.4rem; }
+        .cm-name { font-size: 0.95rem; font-weight: 700; color: var(--ink); word-break: break-all; }
+        .cm-time { flex: 0 0 auto; font-size: 0.78rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+        .cm-body { font-size: 0.94rem; line-height: 1.75; color: var(--ink); word-break: break-word; }
+        .cm-body img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+        .cm-empty, .cm-loading { margin: 1.5rem 0; text-align: center; font-size: 0.9rem; color: var(--ink-soft); }
+        .cm-empty.is-error { color: #d64545; }
+
+        /* 徽章 */
+        .cm-badge { display: inline-block; margin-left: 0.32rem; padding: 0.05rem 0.42rem; border-radius: 0.4rem; font-size: 0.7rem; font-weight: 700; vertical-align: baseline; }
+        .cm-badge--verified { color: #0f9d58; background: rgba(15, 157, 88, 0.13); }
+        .cm-badge--guest { color: #8b929c; background: rgba(139, 146, 156, 0.14); }
+
+        /* ---------- 留言表单 ---------- */
+        .cm-form-row { display: flex; gap: 0.6rem; margin-bottom: 0.65rem; }
+        .cm-form input, .cm-form textarea {
+            width: 100%; padding: 0.7rem 0.95rem; font-size: 0.92rem; font-family: inherit; color: var(--ink);
+            background: #fff; border: 1px solid rgba(0, 0, 0, 0.1); border-radius: 0.8rem; outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease; resize: vertical;
+        }
+        .cm-form input:focus, .cm-form textarea:focus { border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.14); }
+        .cm-form-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.65rem; }
+        .cm-msg { font-size: 0.85rem; color: var(--ink-soft); }
+        .cm-msg.is-bad { color: #d64545; }
+        .cm-submit {
+            flex: 0 0 auto; padding: 0.7rem 1.5rem; font-size: 0.92rem; font-weight: 600; font-family: inherit;
+            color: #fff; background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            border: none; border-radius: 0.8rem; cursor: pointer; transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+        .cm-submit:hover:not(:disabled) { transform: translateY(-1px); }
+        .cm-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
         @media (max-width: 480px) {
             .comment-card { padding: 1.75rem 1.1rem 1.5rem; border-radius: 2rem; }
+            .auth-row { flex-wrap: wrap; }
+            .auth-row button { flex: 1 1 100%; }
+            .cm-form-row { flex-direction: column; gap: 0.6rem; }
         }
 
         .top-left-link {
@@ -1067,7 +1156,83 @@ to {
 
         <section class="comment-card">
             <div class="comment-title">💬 留言板</div>
-            <div id="tcomment"></div>
+
+            <div class="auth-panel">
+                <div class="auth-head">
+                    <span class="auth-head__title">🔐 账号</span>
+                    <span id="auth-status" class="is-guest">当前：游客</span>
+                </div>
+
+                <!-- 已登录时显示 -->
+                <div class="auth-user" id="auth-user" hidden>
+                    <button id="signout-btn" type="button" class="ghost">退出登录</button>
+                </div>
+
+                <!-- 未登录时显示：登录 / 注册 -->
+                <div id="auth-guest">
+                    <div class="auth-tabs">
+                        <button id="tab-login" type="button" class="tab is-active">登录</button>
+                        <button id="tab-register" type="button" class="tab">注册</button>
+                    </div>
+
+                    <!-- 登录 -->
+                    <div id="login-pane">
+                        <div class="auth-row">
+                            <input id="login-email" type="email" inputmode="email" autocomplete="email"
+                                   placeholder="邮箱" maxlength="120">
+                        </div>
+                        <div class="auth-row">
+                            <input id="login-password" type="password" autocomplete="current-password"
+                                   placeholder="密码" maxlength="64">
+                        </div>
+                        <div class="auth-row">
+                            <button id="login-btn" type="button" class="wide">登录</button>
+                        </div>
+                    </div>
+
+                    <!-- 注册 -->
+                    <div id="register-pane" hidden>
+                        <div class="auth-row">
+                            <input id="reg-email" type="email" inputmode="email" autocomplete="email"
+                                   placeholder="邮箱" maxlength="120">
+                            <button id="send-btn" type="button">获取验证码</button>
+                        </div>
+                        <div class="auth-row">
+                            <input id="code-input" type="text" inputmode="numeric" autocomplete="one-time-code"
+                                   placeholder="验证码" maxlength="8">
+                        </div>
+                        <div class="auth-row">
+                            <input id="reg-password" type="password" autocomplete="new-password"
+                                   placeholder="设置密码（至少 6 位）" maxlength="64">
+                        </div>
+                        <div class="auth-row">
+                            <input id="reg-nick" type="text" autocomplete="nickname"
+                                   placeholder="昵称（注册后不可修改）" maxlength="20">
+                        </div>
+                        <div class="auth-row">
+                            <button id="register-btn" type="button" class="wide">注册</button>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="auth-tip" id="auth-tip">登录或注册后，留言会带上「已验证」标记。</p>
+            </div>
+
+            <div id="cm-list" class="cm-list">
+                <p class="cm-loading">留言加载中…</p>
+            </div>
+
+            <div class="cm-form">
+                <div class="cm-form-row">
+                    <input id="cm-nick" type="text" maxlength="20" placeholder="昵称（必填）" autocomplete="nickname">
+                    <input id="cm-mail" type="email" maxlength="120" placeholder="邮箱（选填，不公开）" autocomplete="email">
+                </div>
+                <textarea id="cm-text" rows="3" maxlength="500" placeholder="说点什么吧…"></textarea>
+                <div class="cm-form-foot">
+                    <span class="cm-msg" id="cm-msg"></span>
+                    <button class="cm-submit" id="cm-submit" type="button">发表留言</button>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -1088,56 +1253,609 @@ to {
     </script>
 
     <script>
+        // ==========================================
+        // 留言板：账号（注册/登录）+ 自绘留言列表
+        //   账号：POST https://auth-api.btzx2027class3.dpdns.org
+        //         /api/send-code  {email}                   -> {success:true}
+        //         /api/register   {email, code, password}   -> {token}
+        //         /api/login      {email, password}         -> {token}
+        //         /api/check-token{token}                   -> {email}
+        //         失败一律 {error:"..."}（实测确认，HTTP 状态码不稳定，看 error 字段）
+        //   留言：POST Twikoo GET_RECENT_COMMENTS / COMMENT_SUBMIT
+        // 不用 twikoo.init 渲染，因为要自己往昵称后面插 [已验证]/[游客] 徽章
+        // ==========================================
         (function () {
-            // jsdelivr 偶尔 502 / 被拦截，准备了多个镜像顺序尝试
-            var CDN_LIST = [
-                'https://cdn.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js',
-                'https://fastly.jsdelivr.net/npm/twikoo@1.6.44/dist/twikoo.min.js',
-                'https://unpkg.com/twikoo@1.6.44/dist/twikoo.min.js',
-                'https://cdn.bootcdn.net/ajax/libs/twikoo/1.6.44/twikoo.min.js',
-                'https://cdn.staticfile.org/twikoo/1.6.44/twikoo.min.js'
-            ];
+            var TWIKOO_ENV = 'https://twikoo.btzx2027class3.dpdns.org';
+            var AUTH_API = 'https://auth-api.btzx2027class3.dpdns.org';
+            var TOKEN_KEY = 'class3_auth_token';
+            var EMAIL_KEY = 'class3_auth_email';
+            var NICK_KEY = 'class3_nick';
+            var MAIL_KEY = 'class3_mail';
+            var BOARD_PATH = '/';
 
-            function showFail(msg) {
-                var el = document.getElementById('tcomment');
+            // ---------- 小工具 ----------
+            function $(id) { return document.getElementById(id); }
+            function esc(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            }
+            function readStore(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+            function writeStore(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
+            function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+
+            function formatTime(v) {
+                if (!v) return '';
+                var d = /^\d+$/.test(String(v)) ? new Date(Number(v)) : new Date(String(v));
+                if (isNaN(d.getTime())) return '';
+                function p(n) { return n < 10 ? '0' + n : '' + n; }
+                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+                    ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+
+            // 正文清洗：白名单行内标签，块级标签去壳留内容
+            var ALLOWED_INLINE = { B: 1, STRONG: 1, EM: 1, I: 1, U: 1, S: 1, DEL: 1, CODE: 1, SPAN: 1, A: 1, SUB: 1, SUP: 1, BR: 1 };
+            function escText(s) { return String(s == null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+            function sanitize(node, out) {
+                var kids = node.childNodes || [];
+                for (var i = 0; i < kids.length; i++) {
+                    var k = kids[i];
+                    if (k.nodeType === 3) { out.push(escText(k.nodeValue)); continue; }
+                    if (k.nodeType !== 1) continue;
+                    var tag = String(k.nodeName || '').toUpperCase();
+                    if (tag === 'BR') { out.push('<br>'); continue; }
+                    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'IFRAME') continue;
+                    if (ALLOWED_INLINE[tag]) {
+                        var name = tag.toLowerCase();
+                        if (tag === 'A') {
+                            var href = k.getAttribute && k.getAttribute('href');
+                            if (!/^https?:\/\/[^\s"'<>]+$/i.test(href || '')) { sanitize(k, out); continue; }
+                            out.push('<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">');
+                            sanitize(k, out); out.push('</a>'); continue;
+                        }
+                        out.push('<' + name + '>'); sanitize(k, out); out.push('</' + name + '>');
+                    } else {
+                        sanitize(k, out);
+                    }
+                }
+                return out;
+            }
+            function formatBody(s) {
+                var raw = String(s == null ? '' : s);
+                if (!raw) return '';
+                if (raw.indexOf('<') < 0) {
+                    return escText(raw).split('\n').join('<br>');
+                }
+                try {
+                    var doc = new DOMParser().parseFromString('<div id="__r">' + raw + '</div>', 'text/html');
+                    var root = doc.getElementById('__r');
+                    if (!root) return escText(raw);
+                    return sanitize(root, []).join('');
+                } catch (e) {
+                    return escText(raw);
+                }
+            }
+
+            // ---------- 通用 POST ----------
+            // 这个 Worker 的成功体是 JSON，失败体统一 {error:"..."}；
+            // 但它也偶尔吐纯文本（"Missing email"）或 Cloudflare 崩溃页 HTML，
+            // 所以先取文本，能 JSON 就 JSON，不能就原样留着。
+            function errText(data, res) {
+                if (!data) return 'HTTP ' + (res && res.status);
+                if (data.error) return typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+                if (data.message) return String(data.message);
+                if (data.rawText) {
+                    var t = String(data.rawText).trim();
+                    if (/^<(!doctype|html|head|body)/i.test(t) || /cf-error|Worker threw exception|Bad Gateway/i.test(t)) {
+                        var m = t.match(/cf-error-code"[^>]*>\s*(\d+)/i);
+                        return '服务器出错了' + (m ? '（错误码 ' + m[1] + '）' : '') + '，请稍后再试';
+                    }
+                    return t.length > 120 ? t.slice(0, 120) + '…' : t;
+                }
+                return 'HTTP ' + (res && res.status);
+            }
+
+            function postJSON(url, payload, cb) {
+                var done = false;
+                function finish(err, data) {
+                    if (done) return; done = true; cb(err, data || {});
+                }
+                if (typeof fetch !== 'function') return finish(new Error('当前浏览器不支持 fetch'));
+                // 只对确认是死链的请求加超时，正常请求不设限：
+                // Twikoo 的 COMMENT_SUBMIT 实测可能慢到 5~6 秒，硬超时反而会误报失败。
+                var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+                var line = (payload && payload.event === 'COMMENT_SUBMIT') ? 60000 : 45000;
+                var killer = ctrl ? setTimeout(function () {
+                    ctrl.abort();
+                }, line) : null;
+                function clear() { if (killer) { clearTimeout(killer); killer = null; } }
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    signal: ctrl ? ctrl.signal : undefined
+                }).then(function (r) {
+                    return r.text().then(function (t) {
+                        clear();
+                        var data = null;
+                        var text = (t || '').trim();
+                        if (text) {
+                            try { data = JSON.parse(text); } catch (e) { data = { rawText: text }; }
+                        }
+                        if (!data) data = {};
+                        // 这个后端失败时状态码是 400/500 混着来，但一定带 error 字段
+                        if (data.error && typeof data.error === 'string') {
+                            var e = new Error(data.error);
+                            e.status = r.status; e.data = data;
+                            throw e;
+                        }
+                        if (!r.ok) {
+                            var e2 = new Error(errText(data, r));
+                            e2.status = r.status; e2.data = data;
+                            throw e2;
+                        }
+                        if (data.success === false && data.error) throw new Error(String(data.error));
+                        return data;
+                    });
+                }).then(function (data) { clear(); finish(null, data); })
+                  .catch(function (e) {
+                      clear();
+                      if (e && (e.name === 'AbortError' || /abort/i.test(e.message || ''))) {
+                          e = new Error('请求超时，服务器没有响应');
+                      }
+                      finish(e);
+                  });
+            }
+
+            // 后端成功判断（Twikoo 用 code；自建 API 用 success 字段）
+            function isFail(data) {
+                if (!data) return false;
+                if (data.error) return true;
+                if (data.success === false) return true;
+                return data.code !== undefined && data.code !== null && data.code !== 0 && data.code !== '0';
+            }
+
+            // 从成功体里取 token（兼容 {token} / {data:{token}} / {accessToken}）
+            function pickToken(data) {
+                if (!data) return '';
+                return data.token || (data.data && data.data.token) || data.accessToken || '';
+            }
+
+            // 从成功体里取昵称（兼容 {nick} / {nickname} / {data:{nick}}）
+            function pickNick(data, fallback) {
+                if (!data) return fallback || '';
+                var n = data.nick || data.nickname || (data.data && (data.data.nick || data.data.nickname)) || '';
+                return String(n || fallback || '').trim();
+            }
+
+            // ---------- 身份状态 ----------
+            var auth = { token: '', email: '', nick: '' };
+            var sendTimer = null;
+            var lastItems = null;   // 最近一次渲染的留言，登录态变化时用它重算徽章
+
+            function setStatus(text, cls) {
+                var el = $('auth-status');
                 if (!el) return;
-                if (msg) console.error('[Twikoo]', msg);
-                el.innerHTML = '<p style="color:#d64545;text-align:center;line-height:1.8;">留言板加载失败，请刷新页面重试。</p>';
+                el.textContent = text;
+                el.className = 'is-' + cls;
             }
 
-            function loadScript(i) {
-                if (i >= CDN_LIST.length) return showFail('所有 CDN 都加载失败');
-                var s = document.createElement('script');
-                s.src = CDN_LIST[i];
-                s.onload = function () {
-                    if (typeof twikoo === 'undefined') return loadScript(i + 1);
-                    startTwikoo();
-                };
-                s.onerror = function () {
-                    console.warn('[Twikoo] CDN 加载失败，换下一个：' + CDN_LIST[i]);
-                    loadScript(i + 1);
-                };
-                document.body.appendChild(s);
+            // 账号昵称：注册时填的那个（老账号没有就退回邮箱前缀）
+            function accountNick() {
+                return auth.nick || readStore(NICK_KEY) || (auth.email || '').split('@')[0];
             }
 
-            function startTwikoo() {
-                twikoo.init({
-                    envId: 'https://twikoo.btzx2027class3.dpdns.org',
-                    el: '#tcomment',
-                    lang: 'zh-CN',
-                    // 隐藏“网址”输入框（Twikoo 默认就有，不是必填），只留昵称 / 邮箱 / 评论
-                    style: '.tk-meta-input > .el-input:nth-child(3){display:none!important}' +
-                           '.tk-meta-input{grid-template-columns:repeat(2,minmax(0,1fr))!important}'
-                }).catch(function (err) {
-                    showFail(err && err.message ? err.message : err);
+            // 昵称占用表：nick(小写) -> email(小写)。
+            // 这台机器上注册 / 登录过的账号才会被记进来；别人在别的设备注册的昵称这里查不到。
+            var NICKMAP_KEY = 'class3_nickmap';
+
+            function readNickMap() {
+                var raw = readStore(NICKMAP_KEY);
+                var m = null;
+                try { m = raw ? JSON.parse(raw) : null; } catch (e) { m = null; }
+                return (m && typeof m === 'object') ? m : {};
+            }
+
+            function nickOwner(nick) {
+                var m = readNickMap();
+                return m[String(nick || '').trim().toLowerCase()] || '';
+            }
+
+            function nickTaken(nick) {
+                var owner = nickOwner(nick);
+                return !!owner && owner !== String(auth.email || '').toLowerCase();
+            }
+
+            function rememberNick(nick, email) {
+                nick = String(nick || '').trim();
+                email = String(email || '').trim().toLowerCase();
+                if (!nick || !email) return;
+                var m = readNickMap();
+                m[nick.toLowerCase()] = email;
+                try { localStorage.setItem(NICKMAP_KEY, JSON.stringify(m)); } catch (e) {}
+            }
+
+            // 同一个人发的留言：昵称相同且邮箱相同（邮箱只回给本站自己，Twikoo 的 mail 字段）
+            function isOwnComment(c) {
+                if (!auth.token || !auth.email) return false;
+                var cMail = String(c.mail || '').trim().toLowerCase();
+                return cMail === String(auth.email).toLowerCase();
+            }
+
+            function applyAuthState() {
+                var verified = !!auth.token;
+                setStatus(verified ? '✅ 已登录 (' + (auth.email || '') + ')' : '当前：游客',
+                    verified ? 'verified' : 'guest');
+
+                if ($('auth-guest')) $('auth-guest').hidden = verified;
+                if ($('auth-user')) $('auth-user').hidden = !verified;
+
+                // 已登录：昵称/邮箱锁定成账号信息，避免冒用别人的昵称
+                if ($('cm-nick')) {
+                    if (verified) {
+                        $('cm-nick').value = accountNick();
+                        $('cm-nick').readOnly = true;
+                    } else {
+                        $('cm-nick').readOnly = false;
+                    }
+                }
+                if ($('cm-mail')) {
+                    if (verified) { $('cm-mail').value = auth.email || ''; $('cm-mail').readOnly = true; }
+                    else { $('cm-mail').readOnly = false; }
+                }
+
+                var tip = $('auth-tip');
+                if (tip) {
+                    tip.textContent = verified
+                        ? '已登录：' + (auth.email || '') + '（昵称 ' + accountNick() + '），你的留言会带「已验证」标记。'
+                        : '登录或注册后，留言会带上「已验证」标记。';
+                }
+                if (!verified) resetSendButton();
+                // 登录态变了，已渲染的徽章要重算
+                if (lastItems) renderList(lastItems);
+            }
+
+            function resetSendButton() {
+                clearInterval(sendTimer); sendTimer = null;
+                var btn = $('send-btn');
+                if (btn) { btn.textContent = '获取验证码'; btn.disabled = false; }
+            }
+
+            function switchTab(which) {
+                var isLogin = which !== 'register';
+                if ($('login-pane')) $('login-pane').hidden = !isLogin;
+                if ($('register-pane')) $('register-pane').hidden = isLogin;
+                if ($('tab-login')) $('tab-login').className = 'tab' + (isLogin ? ' is-active' : '');
+                if ($('tab-register')) $('tab-register').className = 'tab' + (isLogin ? '' : ' is-active');
+                // 切换时把提示复位，别把上一页的报错留在那儿
+                var tip = $('auth-tip');
+                if (tip) tip.textContent = isLogin
+                    ? '用注册时的邮箱和密码登录。'
+                    : '填写邮箱 → 获取验证码 → 设置密码，完成注册。';
+            }
+
+            function login(emailInput, passwordInput, btn, onOk) {
+                var email = (emailInput.value || '').trim();
+                var password = passwordInput.value || '';
+                if (!email) { setStatus('请填写邮箱', 'error'); emailInput.focus(); return; }
+                if (!isEmail(email)) { setStatus('邮箱格式不对', 'error'); emailInput.focus(); return; }
+                if (!password) { setStatus('请填写密码', 'error'); passwordInput.focus(); return; }
+
+                btn.disabled = true;
+                setStatus('正在登录…', 'busy');
+                postJSON(AUTH_API + '/api/login', { email: email, password: password }, function (err, data) {
+                    btn.disabled = false;
+                    if (err || isFail(data)) {
+                        setStatus('登录失败：' + ((err && err.message) || '请稍后再试'), 'error');
+                        return;
+                    }
+                    var token = pickToken(data);
+                    if (!token) { setStatus('登录失败：服务器没有返回 token', 'error'); return; }
+                    auth.token = String(token);
+                    auth.email = email;
+                    auth.nick = pickNick(data, readStore(NICK_KEY) || email.split('@')[0]);
+                    writeStore(TOKEN_KEY, auth.token);
+                    writeStore(EMAIL_KEY, email);
+                    writeStore(NICK_KEY, auth.nick);
+                    rememberNick(auth.nick, email);
+                    applyAuthState();
+                    if (onOk) onOk();
                 });
             }
 
-            if (document.body) {
-                loadScript(0);
-            } else {
-                document.addEventListener('DOMContentLoaded', function () { loadScript(0); });
+            // ---------- 获取验证码（60 秒倒计时） ----------
+            function sendCode() {
+                var emailEl = $('reg-email');
+                var btn = $('send-btn');
+                var email = (emailEl.value || '').trim();
+                if (!email) { setStatus('请先填写邮箱', 'error'); emailEl.focus(); return; }
+                if (!isEmail(email)) { setStatus('邮箱格式不对', 'error'); emailEl.focus(); return; }
+
+                btn.disabled = true;
+                setStatus('正在发送…', 'busy');
+                postJSON(AUTH_API + '/api/send-code', { email: email }, function (err, data) {
+                    if (err || isFail(data)) {
+                        // 后端会直接给出人话，例如「请勿使用 Outlook 邮箱，建议使用 QQ 或 163 邮箱」
+                        var m = (err && err.message) || '发送失败，请稍后再试';
+                        setStatus(m, 'error');
+                        btn.disabled = false;
+                        return;
+                    }
+                    writeStore(EMAIL_KEY, email);
+                    setStatus('验证码已发送，请查收邮箱', 'busy');
+                    var left = 60;
+                    btn.textContent = left + ' 秒后重发';
+                    clearInterval(sendTimer);
+                    sendTimer = setInterval(function () {
+                        left--;
+                        if (left <= 0) { resetSendButton(); return; }
+                        btn.textContent = left + ' 秒后重发';
+                    }, 1000);
+                    if ($('code-input')) $('code-input').focus();
+                });
             }
+
+            // ---------- 注册 ----------
+            function register() {
+                var emailEl = $('reg-email');
+                var codeEl = $('code-input');
+                var pwdEl = $('reg-password');
+                var nickEl = $('reg-nick');
+                var btn = $('register-btn');
+                var email = (emailEl.value || '').trim();
+                var code = (codeEl.value || '').trim();
+                var password = pwdEl.value || '';
+                var nick = nickEl ? (nickEl.value || '').trim() : '';
+
+                if (!email) { setStatus('请填写邮箱', 'error'); emailEl.focus(); return; }
+                if (!isEmail(email)) { setStatus('邮箱格式不对', 'error'); emailEl.focus(); return; }
+                if (!code) { setStatus('请填写验证码', 'error'); codeEl.focus(); return; }
+                if (!password) { setStatus('请设置密码', 'error'); pwdEl.focus(); return; }
+                if (password.length < 6) { setStatus('密码至少 6 位', 'error'); pwdEl.focus(); return; }
+                if (!nick) { setStatus('请填写昵称', 'error'); nickEl.focus(); return; }
+                if (nick.length > 20) { setStatus('昵称最多 20 个字', 'error'); nickEl.focus(); return; }
+                // 昵称紧贴 [已验证] 徽章显示，别让人把徽章伪装进昵称里
+                if (/[\[\]<>]/.test(nick)) {
+                    setStatus('昵称不能包含 [ ] < > 这些符号', 'error'); nickEl.focus(); return;
+                }
+                if (nickTaken(nick)) {
+                    setStatus('这个昵称已经被别人用了，换一个吧', 'error'); nickEl.focus(); return;
+                }
+
+                btn.disabled = true;
+                setStatus('正在注册…', 'busy');
+                postJSON(AUTH_API + '/api/register',
+                    { email: email, code: code, password: password, nick: nick },
+                    function (err, data) {
+                        btn.disabled = false;
+                        if (err || isFail(data)) {
+                            var m = (err && err.message) || '请稍后再试';
+                            // 后端如果自己也做了重名检查，原样透出
+                            if (/昵称/.test(m)) {
+                                setStatus('注册失败：' + m, 'error');
+                                if (nickEl) nickEl.focus();
+                                return;
+                            }
+                            setStatus('注册失败：' + m, 'error');
+                            return;
+                        }
+                        var token = pickToken(data);
+                        if (!token) { setStatus('注册失败：服务器没有返回 token', 'error'); return; }
+                        auth.token = String(token);
+                        auth.email = email;
+                        auth.nick = pickNick(data, nick);
+                        writeStore(TOKEN_KEY, auth.token);
+                        writeStore(EMAIL_KEY, email);
+                        writeStore(NICK_KEY, auth.nick);
+                        rememberNick(auth.nick, email);
+                        resetSendButton();
+                        applyAuthState();
+                    });
+            }
+
+            // ---------- 退出 ----------
+            function signOut() {
+                auth.token = '';
+                auth.email = '';
+                auth.nick = '';
+                writeStore(TOKEN_KEY, '');
+                writeStore(EMAIL_KEY, '');
+                writeStore(NICK_KEY, '');
+                applyAuthState();
+                switchTab('login');
+            }
+
+            // ---------- 启动时校验本地 token ----------
+            function checkToken() {
+                var token = readStore(TOKEN_KEY);
+                auth.nick = readStore(NICK_KEY);
+                if (!token) { auth.token = ''; auth.email = ''; applyAuthState(); return; }
+                auth.token = token;
+                auth.email = readStore(EMAIL_KEY);
+                setStatus('正在校验登录状态…', 'busy');
+                postJSON(AUTH_API + '/api/check-token', { token: token }, function (err, data) {
+                    if (err || isFail(data)) {
+                        // token 失效（后端会回「登录已过期」）：静默退出，不弹错误
+                        auth.token = '';
+                        auth.email = '';
+                        auth.nick = '';
+                        writeStore(TOKEN_KEY, '');
+                        console.warn('[留言板] token 校验失败：', (err && err.message) || '');
+                        applyAuthState();
+                        return;
+                    }
+                    var email = data.email || (data.data && data.data.email) || readStore(EMAIL_KEY) || '';
+                    auth.email = email;
+                    if (email) writeStore(EMAIL_KEY, email);
+                    var nick = pickNick(data, auth.nick || (email ? email.split('@')[0] : ''));
+                    auth.nick = nick;
+                    writeStore(NICK_KEY, nick);
+                    rememberNick(nick, email);
+                    applyAuthState();
+                });
+            }
+
+            // ---------- 留言列表 ----------
+            function fetchComments(cb) {
+                postJSON(TWIKOO_ENV + '/', {
+                    event: 'GET_RECENT_COMMENTS',
+                    pageSize: 100,
+                    includeReply: false,
+                    envId: TWIKOO_ENV
+                }, function (err, data) {
+                    if (err || isFail(data)) return cb(err || new Error(errText(data, null) || '读取失败'));
+                    cb(null, Array.isArray(data.data) ? data.data : []);
+                });
+            }
+
+            function sortDesc(a, b) { return Number(b.created) - Number(a.created); }
+
+            // 徽章判定：后端不存投票/已验证标记，只能靠两点认人——
+            //  1) 这条留言是账号昵称发的（注册昵称 ↔ 留言昵称，大小写不敏感）
+            //  2) 这条留言没带邮箱（游客留言允许填，账号留言由表单锁定成账号邮箱）
+            // 够用的近似：登录用户发的留言一定命中；游客蹭账号昵称也能亮，这是已知上限。
+            function isVerifiedComment(c) {
+                if (!auth.token) return false;
+                var cNick = String(c.nick || '').trim().toLowerCase();
+                var aNick = String(accountNick() || '').trim().toLowerCase();
+                if (!cNick || !aNick || cNick !== aNick) return false;
+                return !String(c.mail || '').trim();
+            }
+
+            function renderList(items) {
+                var box = $('cm-list');
+                if (!box) return;
+                lastItems = items || [];
+                if (!items.length) {
+                    box.innerHTML = '<p class="cm-empty">还没有留言，来做第一个留言的人吧～</p>';
+                    return;
+                }
+                box.innerHTML = items.map(function (c) {
+                    var verified = isVerifiedComment(c);
+                    var badge = verified
+                        ? '<span class="cm-badge cm-badge--verified">[已验证]</span>'
+                        : '<span class="cm-badge cm-badge--guest">[游客]</span>';
+                    return '<div class="cm-item">' +
+                        '<div class="cm-head"><span class="cm-name">' + esc(c.nick || '匿名') + badge + '</span>' +
+                        '<span class="cm-time">' + formatTime(c.created) + '</span></div>' +
+                        '<div class="cm-body">' + formatBody(c.comment) + '</div></div>';
+                }).join('');
+            }
+
+            function refreshList() {
+                var box = $('cm-list');
+                if (box) box.innerHTML = '<p class="cm-loading">留言加载中…</p>';
+                fetchComments(function (err, all) {
+                    if (err) {
+                        if (box) box.innerHTML = '<p class="cm-empty is-error">留言加载失败，请刷新页面重试。</p>';
+                        console.error('[留言板]', err);
+                        return;
+                    }
+                    renderList(all.filter(function (c) {
+                        return c.url === BOARD_PATH || c.path === BOARD_PATH;
+                    }).sort(sortDesc));
+                });
+            }
+
+            // ---------- 发表留言 ----------
+            function submitComment() {
+                var btn = $('cm-submit');
+                var msg = $('cm-msg');
+                var nickEl = $('cm-nick'), mailEl = $('cm-mail'), textEl = $('cm-text');
+                var nick = (nickEl.value || '').trim();
+                var mail = (mailEl.value || '').trim();
+                var text = (textEl.value || '').trim();
+                function say(t, bad) { msg.textContent = t; msg.className = 'cm-msg' + (bad ? ' is-bad' : ''); }
+
+                if (!nick) { say('昵称不能为空。', true); nickEl.focus(); return; }
+                if (!text) { say('留言内容不能为空。', true); textEl.focus(); return; }
+                if (mail && !isEmail(mail)) { say('邮箱格式不对。', true); mailEl.focus(); return; }
+
+                writeStore(NICK_KEY, nick);
+                writeStore(MAIL_KEY, mail);
+
+                // 已登录就带上 token：Twikoo 侧据此打「已验证」标记
+                var payload = {
+                    event: 'COMMENT_SUBMIT',
+                    envId: TWIKOO_ENV,
+                    path: BOARD_PATH,
+                    url: BOARD_PATH,
+                    href: location.href,
+                    nick: nick,
+                    mail: mail,
+                    link: '',
+                    ua: navigator.userAgent,
+                    comment: text,
+                    pid: '',
+                    rid: ''
+                };
+                var token = auth.token || readStore(TOKEN_KEY);
+                if (token) payload.token = token;
+
+                btn.disabled = true;
+                say('发表中…', false);
+
+                postJSON(TWIKOO_ENV + '/', payload, function (err, data) {
+                    btn.disabled = false;
+                    if (err || isFail(data)) {
+                        var code = (err && err.status) || data.code || '';
+                        var m = (err && err.message) || data.message || '网络错误';
+                        say('发表失败' + (code ? '（' + code + '）' : '') + '：' + m, true);
+                        if (err) console.error('[留言板]', err);
+                        // 超时/网络错误时留言可能已落库，拉一次列表让用户自己看
+                        if (err) refreshList();
+                        return;
+                    }
+                    textEl.value = '';
+                    say('发表成功！', false);
+                    refreshList();
+                });
+            }
+
+            // ---------- 启动 ----------
+            function on(id, ev, fn) {
+                var el = $(id);
+                if (el) el.addEventListener(ev, fn);
+            }
+
+            function boot() {
+                if ($('cm-nick')) $('cm-nick').value = readStore(NICK_KEY) || '';
+                if ($('cm-mail')) $('cm-mail').value = readStore(MAIL_KEY) || '';
+
+                on('tab-login', 'click', function () { switchTab('login'); });
+                on('tab-register', 'click', function () { switchTab('register'); });
+
+                on('login-btn', 'click', function () {
+                    login($('login-email'), $('login-password'), $('login-btn'));
+                });
+                on('login-password', 'keydown', function (e) {
+                    if (e.key === 'Enter') login($('login-email'), $('login-password'), $('login-btn'));
+                });
+
+                on('send-btn', 'click', sendCode);
+                on('register-btn', 'click', register);
+                on('reg-password', 'keydown', function (e) {
+                    if (e.key === 'Enter') { if ($('reg-nick')) $('reg-nick').focus(); else register(); }
+                });
+                on('reg-nick', 'keydown', function (e) {
+                    if (e.key === 'Enter') register();
+                });
+                on('code-input', 'keydown', function (e) {
+                    if (e.key === 'Enter') { if ($('reg-password')) $('reg-password').focus(); }
+                });
+
+                on('signout-btn', 'click', signOut);
+                on('cm-submit', 'click', submitComment);
+
+                switchTab('login');
+                applyAuthState();
+                checkToken();
+                refreshList();
+            }
+
+            if (document.body) boot();
+            else document.addEventListener('DOMContentLoaded', boot);
         })();
     </script>
 </body>
