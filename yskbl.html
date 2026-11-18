@@ -176,12 +176,17 @@
         .auth-row button.ghost, .auth-user button.ghost {
             color: var(--ink-soft); background: transparent; border: 1px solid var(--line);
         }
-        .auth-user { display: flex; justify-content: flex-end; margin-bottom: 0.4rem; }
+        .auth-user { display: flex; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
         .auth-tip { margin: 0.4rem 0 0; font-size: 0.8rem; line-height: 1.6; color: var(--ink-soft); }
+        .auth-tip.nick-bad { color: #d64545; }
         .ep-lock { color: var(--ink-soft); }
 
+        /* 评论表单的固定槽位：排在评论列表上方 */
+        .ep-slot:empty { display: none; }
+        .ep-slot { margin-bottom: 1.2rem; }
+
         /* 发表评论表单 */
-        .ep-form { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+        .ep-form { display: flex; flex-direction: column; gap: 0.6rem; }
         .ep-form-row { display: flex; gap: 0.6rem; flex-wrap: wrap; }
         .ep-input, .ep-textarea {
             font: inherit; color: var(--ink); background: #fff;
@@ -251,6 +256,8 @@
     <section class="comment-card" id="comment-card">
         <h2 class="comment-title">💬 评论区</h2>
         <div class="comment-ep" id="comment-ep"></div>
+        <!-- 评论表单固定在列表上方 -->
+        <div class="ep-slot" id="ep-slot"></div>
 
         <!-- 身份面板：和首页留言板共用同一份 localStorage，登录状态互通 -->
         <div class="auth-panel">
@@ -260,7 +267,20 @@
             </div>
 
             <div class="auth-user" id="auth-user" hidden>
+                <button id="edit-nick-btn" type="button" class="ghost">修改昵称</button>
                 <button id="signout-btn" type="button" class="ghost">退出登录</button>
+            </div>
+
+            <div id="nick-pane" hidden>
+                <div class="auth-row">
+                    <input id="nick-input" type="text" maxlength="20" autocomplete="nickname"
+                           placeholder="新昵称（最多 20 字）">
+                    <button id="nick-save-btn" type="button">保存</button>
+                </div>
+                <div class="auth-row">
+                    <button id="nick-cancel-btn" type="button" class="ghost wide">取消</button>
+                </div>
+                <p class="auth-tip" id="nick-tip">改的是以后评论用的昵称，已发出去的旧评论不会改名。</p>
             </div>
 
             <div id="auth-guest">
@@ -476,6 +496,7 @@
             var EMAIL_KEY = 'class3_auth_email';
             var NICK_KEY = 'class3_nick';
             var NICKMAP_KEY = 'class3_nickmap';
+            var EMAILNICK_KEY = 'class3_emailnick';
             var auth = { token: '', email: '', nick: '' };
             var sendTimer = null;
 
@@ -570,15 +591,145 @@
                 var m = readNickMap();
                 m[nick.toLowerCase()] = email;
                 writeStore(NICKMAP_KEY, JSON.stringify(m));
+                // 邮箱 -> 昵称：后端不返昵称时靠它找回自己的名字（和首页共用同一份数据）
+                if (!looksLikeFallback(nick, email)) {
+                    var e = readEmailNickMap();
+                    e[email] = nick;
+                    writeStore(EMAILNICK_KEY, JSON.stringify(e));
+                }
             }
 
-            // 徽章：账号昵称发的（且没带邮箱）→ 已验证
-            function isVerifiedComment(c) {
+            function looksLikeFallback(nick, email) {
+                var local = String(email || '').split('@')[0].toLowerCase();
+                return !nick || nick.trim().toLowerCase() === local;
+            }
+
+            function readEmailNickMap() {
+                var raw = readStore(EMAILNICK_KEY);
+                var m = null;
+                try { m = raw ? JSON.parse(raw) : null; } catch (e) { m = null; }
+                return (m && typeof m === 'object') ? m : {};
+            }
+
+            function nickForEmail(email) {
+                email = String(email || '').trim().toLowerCase();
+                if (!email) return '';
+                var m = readEmailNickMap();
+                return String(m[email] || '').trim();
+            }
+
+            // 登录后用什么昵称：后端 nick > 本地邮箱表 > 候选 > 邮箱前缀
+            function resolveNick(data, email, candidates) {
+                var fromApi = (data && (data.nick || data.nickname || (data.data && (data.data.nick || data.data.nickname)))) || '';
+                fromApi = String(fromApi).trim();
+                if (fromApi && !looksLikeFallback(fromApi, email)) return fromApi;
+                var fromMap = nickForEmail(email);
+                if (fromMap && !looksLikeFallback(fromMap, email)) return fromMap;
+                var list = candidates || [];
+                for (var i = 0; i < list.length; i++) {
+                    var c = String(list[i] || '').trim();
+                    if (c && !looksLikeFallback(c, email)) return c;
+                }
+                return fromApi || fromMap || String(email || '').split('@')[0];
+            }
+
+            // 徽章：和后端无关，靠正文里的账号指纹认人（见 agentId）
+            //  1) 正文带指纹 → 和当前账号指纹一致才算本人
+            //  2) 全站都还没有指纹（老数据）→ 退回「昵称一致且没填邮箱」
+            //  3) 其余一律不认
+            function isVerifiedComment(c, hasAgent) {
                 if (!auth.token) return false;
+                var cAgent = readAgent(c && c.comment);
+                var myAgent = agentId(auth.email);
+                if (cAgent) return !!myAgent && cAgent === myAgent;
+                if (hasAgent) return false;
                 var cNick = String(c.nick || '').trim().toLowerCase();
                 var aNick = String(accountNick() || '').trim().toLowerCase();
                 if (!cNick || !aNick || cNick !== aNick) return false;
                 return !String(c.mail || '').trim();
+            }
+
+            // 账号指纹：正文里夹一个肉眼看不见的 <span data-agent="a1+sha256(邮箱)">…</span>
+            function sha256Hex(ascii) {
+                function rr(v, n) { return (v >>> n) | (v << (32 - n)); }
+                var maxWord = Math.pow(2, 32), result = '', i, j;
+                var hash = sha256Hex.h || (sha256Hex.h = []);
+                var k = sha256Hex.k || (sha256Hex.k = []);
+                var primeCounter = k.length, isComposite = {};
+                for (var candidate = 2; primeCounter < 64; candidate++) {
+                    if (!isComposite[candidate]) {
+                        for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+                        hash[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
+                        k[primeCounter++] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
+                    }
+                }
+                var words = [], bitLen = ascii.length * 8;
+                ascii += '\x80';
+                while (ascii.length % 64 - 56) ascii += '\x00';
+                for (i = 0; i < ascii.length; i++) {
+                    j = ascii.charCodeAt(i);
+                    if (j >> 8) return '';
+                    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+                }
+                words[words.length] = (bitLen / maxWord) | 0;
+                words[words.length] = bitLen;
+                for (j = 0; j < words.length;) {
+                    var w = words.slice(j, j += 16);
+                    var oldHash = hash;
+                    hash = hash.slice(0, 8);
+                    for (i = 0; i < 64; i++) {
+                        var w15 = w[i - 15], w2 = w[i - 2];
+                        var a = hash[0], e = hash[4];
+                        var temp1 = hash[7] + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i] + (w[i] = (i < 16) ? w[i] : (
+                            w[i - 16] + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))
+                        ) | 0);
+                        var temp2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+                        hash = [(temp1 + temp2) | 0].concat(hash);
+                        hash[4] = (hash[4] + temp1) | 0;
+                    }
+                    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+                }
+                for (i = 0; i < 8; i++) {
+                    for (j = 3; j + 1; j--) {
+                        var b = (hash[i] >> (j * 8)) & 255;
+                        result += ((b < 16) ? 0 : '') + b.toString(16);
+                    }
+                }
+                return result;
+            }
+            function agentId(email) {
+                email = String(email || '').trim().toLowerCase();
+                if (!email || email.indexOf('@') < 0) return '';
+                var h = sha256Hex(email);
+                return h ? 'a1' + h : '';
+            }
+            function readAgent(comment) {
+                var m = String(comment == null ? '' : comment).match(/data-agent="([0-9a-z]+)"/);
+                return m ? m[1] : '';
+            }
+            function wrapAgent(html, id) {
+                return id ? '<span data-agent="' + id + '">' + html + '</span>' : html;
+            }
+            function stripAgent(html) {
+                var s = String(html || ''), out = '', i = 0;
+                var OPEN = /<span data-agent="[0-9a-z]+">/g;
+                var m;
+                while ((m = OPEN.exec(s)) !== null) {
+                    out += s.slice(i, m.index);
+                    var depth = 1, p = OPEN.lastIndex;
+                    var TAG = /<(\/?)span\b[^>]*>/gi;
+                    TAG.lastIndex = p;
+                    var t, end = -1;
+                    while ((t = TAG.exec(s)) !== null) {
+                        depth += t[1] ? -1 : 1;
+                        if (depth === 0) { end = t.index; p = TAG.lastIndex; break; }
+                    }
+                    if (end < 0) { out += s.slice(m.index); i = s.length; break; }
+                    out += s.slice(OPEN.lastIndex, end);
+                    i = p;
+                    OPEN.lastIndex = p;
+                }
+                return out + s.slice(i);
             }
 
             function applyAuthState() {
@@ -587,6 +738,7 @@
                     verified ? 'verified' : 'guest');
                 if ($('auth-guest')) $('auth-guest').hidden = verified;
                 if ($('auth-user')) $('auth-user').hidden = !verified;
+                if (!verified) closeNickEditor();
 
                 var tip = $('auth-tip');
                 if (tip) {
@@ -637,7 +789,7 @@
                     if (!token) { setStatus('登录失败：服务器没有返回 token', 'error'); return; }
                     auth.token = String(token);
                     auth.email = email;
-                    auth.nick = pickNick(data, readStore(NICK_KEY) || email.split('@')[0]);
+                    auth.nick = resolveNick(data, email, [readStore(NICK_KEY)]);
                     writeStore(TOKEN_KEY, auth.token);
                     writeStore(EMAIL_KEY, email);
                     writeStore(NICK_KEY, auth.nick);
@@ -710,7 +862,7 @@
                         if (!token) { setStatus('注册失败：服务器没有返回 token', 'error'); return; }
                         auth.token = String(token);
                         auth.email = email;
-                        auth.nick = pickNick(data, nick);
+                        auth.nick = nick || resolveNick(data, email, [readStore(NICK_KEY)]);
                         writeStore(TOKEN_KEY, auth.token);
                         writeStore(EMAIL_KEY, email);
                         writeStore(NICK_KEY, auth.nick);
@@ -727,8 +879,59 @@
                 writeStore(TOKEN_KEY, '');
                 writeStore(EMAIL_KEY, '');
                 writeStore(NICK_KEY, '');
+                closeNickEditor();
                 applyAuthState();
                 switchTab('login');
+            }
+
+            // ---------- 修改昵称 ----------
+            // 账号后端没有改昵称的接口，昵称只存本地（邮箱 -> 昵称表 + class3_nick）
+            function openNickEditor() {
+                if (!auth.token) return;
+                var pane = $('nick-pane'), btn = $('edit-nick-btn');
+                if (!pane) return;
+                pane.hidden = false;
+                if (btn) btn.hidden = true;
+                var input = $('nick-input');
+                if (input) { input.value = accountNick(); input.focus(); input.select(); }
+                var t = $('nick-tip');
+                if (t) {
+                    t.textContent = '改的是以后评论用的昵称，已发出去的旧评论不会改名。';
+                    t.className = 'auth-tip';
+                }
+            }
+
+            function closeNickEditor() {
+                var pane = $('nick-pane'), btn = $('edit-nick-btn');
+                if (pane) pane.hidden = true;
+                if (btn) btn.hidden = false;
+            }
+
+            function saveNick() {
+                var input = $('nick-input'), tip = $('nick-tip');
+                function say(t, bad) {
+                    if (!tip) return;
+                    tip.textContent = t;
+                    tip.className = 'auth-tip' + (bad ? ' nick-bad' : '');
+                }
+                var nick = (input && input.value || '').trim();
+                if (!auth.token) return say('请先登录。', true);
+                if (!nick) { say('昵称不能为空。', true); if (input) input.focus(); return; }
+                if (nick.length > 20) { say('昵称最多 20 个字。', true); if (input) input.focus(); return; }
+                if (/[\[\]<>]/.test(nick)) { say('昵称不能包含 [ ] < > 这几个符号。', true); if (input) input.focus(); return; }
+                if (nickTaken(nick)) { say('这个昵称已经被别的邮箱用了。', true); if (input) input.focus(); return; }
+
+                auth.nick = nick;
+                writeStore(NICK_KEY, nick);
+                rememberNick(nick, auth.email);
+                var aid = agentId(auth.email);
+                if (aid) rememberAgent(nick, auth.email);
+                closeNickEditor();
+                applyAuthState();
+                setStatus('✅ 已登录 (' + (auth.email || '') + ')', 'verified');
+                if (tip) tip.textContent = '昵称已改为 ' + nick + '。';
+                // 昵称变了，评论列表里的「已验证」判定要重算
+                if (ready && currentPath) renderEpisode(currentPath, currentLabel);
             }
 
             // 启动时校验本地 token（与首页共用，所以首页登录过这里直接是已登录）
@@ -749,7 +952,8 @@
                     var email = data.email || (data.data && data.data.email) || readStore(EMAIL_KEY) || '';
                     auth.email = email;
                     if (email) writeStore(EMAIL_KEY, email);
-                    var nick = pickNick(data, auth.nick || (email ? email.split('@')[0] : ''));
+                    // 后端常常不返昵称，不能拿邮箱前缀把本地记着的正确昵称冲掉
+                    var nick = resolveNick(data, email, [auth.nick, readStore(NICK_KEY)]);
                     auth.nick = nick;
                     writeStore(NICK_KEY, nick);
                     rememberNick(nick, email);
@@ -776,6 +980,13 @@
                     if (e.key === 'Enter' && $('reg-password')) $('reg-password').focus();
                 });
                 if ($('signout-btn')) $('signout-btn').addEventListener('click', signOut);
+                if ($('edit-nick-btn')) $('edit-nick-btn').addEventListener('click', openNickEditor);
+                if ($('nick-save-btn')) $('nick-save-btn').addEventListener('click', saveNick);
+                if ($('nick-cancel-btn')) $('nick-cancel-btn').addEventListener('click', closeNickEditor);
+                if ($('nick-input')) $('nick-input').addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') saveNick();
+                    if (e.key === 'Escape') closeNickEditor();
+                });
                 switchTab('login');
                 applyAuthState();
                 checkToken();
@@ -783,6 +994,11 @@
 
             function commentBox() {
                 return document.getElementById('tcomment');
+            }
+
+            // 评论表单的固定位置：就在评论列表上方（#ep-slot 在 DOM 里排在 #tcomment 之前）
+            function formSlot() {
+                return document.getElementById('ep-slot') || commentBox();
             }
 
             function showMsg(text, isError) {
@@ -854,6 +1070,14 @@
                         if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'IFRAME') continue;
                         if (ALLOWED_INLINE[tag]) {
                             var name = tag.toLowerCase();
+                            var agent = k.getAttribute && k.getAttribute('data-agent');
+                            if (agent && /^[0-9a-z]+$/.test(agent)) {
+                                // 账号指纹：保留成 data-agent 属性，渲染完成后由 stripAgent 剥掉
+                                out.push('<span data-agent="' + agent + '">');
+                                sanitizeNode(k, out);
+                                out.push('</span>');
+                                continue;
+                            }
                             if (tag === 'A') {
                                 var href = k.getAttribute && k.getAttribute('href');
                                 // 只放行 http(s)；危险的 javascript: 链接丢标签、留文字
@@ -966,15 +1190,18 @@
                         buildForm(label);
                         return;
                     }
+                    // 只要有带指纹的评论，就认为新规矩生效，不再用昵称近似
+                    var hasAgent = items.some(function (c) { return !!readAgent(c.comment); });
                     wrap.innerHTML = items.map(function (c) {
                         var name = esc(c.nick);
-                        var badge = isVerifiedComment(c)
+                        var verified = isVerifiedComment(c, hasAgent);
+                        var badge = verified
                             ? '<span class="ep-badge ep-badge--verified">[已验证]</span>'
-                            : '<span class="ep-badge ep-badge--guest">[游客]</span>';
+                            : (readAgent(c.comment) ? '' : '<span class="ep-badge ep-badge--guest">[旧游客]</span>');
                         return '<div class="ep-comment' + (c.isReply ? ' ep-comment-reply' : '') + '">' +
                             '<div class="ep-comment-head"><span><b>' + name + '</b>' + badge + '</span>' +
                             '<span>' + formatTime(c.created) + '</span></div>' +
-                            '<div class="ep-comment-body">' + formatBody(c.comment) + '</div></div>';
+                            '<div class="ep-comment-body">' + stripAgent(formatBody(c.comment)) + '</div></div>';
                     }).join('');
                     buildForm(label);
                 });
@@ -998,14 +1225,19 @@
             }
 
             function buildForm(label) {
-                commentBox().querySelectorAll('.ep-form').forEach(function (n) { n.remove(); });
+                var slot = formSlot();
+                // 表单只放在 #ep-slot 这一个地方；#tcomment 里万一有历史残留也一并清掉
+                slot.querySelectorAll('.ep-form, .ep-lock').forEach(function (n) { n.remove(); });
+                if (commentBox() && commentBox() !== slot) {
+                    commentBox().querySelectorAll('.ep-form, .ep-lock').forEach(function (n) { n.remove(); });
+                }
 
                 // 没登录不让留言，这样「已验证」才有意义
                 if (!auth.token) {
                     var lock = document.createElement('p');
                     lock.className = 'ep-empty ep-lock';
                     lock.innerHTML = '请先在上方登录或注册，登录后即可评论。';
-                    commentBox().appendChild(lock);
+                    slot.appendChild(lock);
                     return;
                 }
 
@@ -1022,7 +1254,7 @@
                         '<span class="ep-msg" data-ep="msg"></span>' +
                         '<button class="ep-submit" data-ep="submit" type="button">发表评论</button>' +
                     '</div>';
-                commentBox().appendChild(box);
+                slot.appendChild(box);
                 // 表单要先追加到页面里，才能用 querySelector 取到子元素
                 var btn = box.querySelector('[data-ep="submit"]');
                 if (btn) btn.addEventListener('click', function () {
@@ -1073,6 +1305,8 @@
 
                 btn.disabled = true;
                 say('发表中…', false);
+                // 正文夹隐形指纹，下次渲染就能认出这条是谁发的
+                var aid = agentId(auth.email);
                 var payload = {
                     event: 'COMMENT_SUBMIT',
                     envId: ENV_ID,
@@ -1083,7 +1317,7 @@
                     mail: mail,
                     link: '',
                     ua: navigator.userAgent,
-                    comment: text,
+                    comment: wrapAgent(escText(text).replace(/\r?\n/g, '<br>'), aid),
                     pid: '',
                     rid: ''
                 };
