@@ -1274,9 +1274,10 @@ to {
         // 留言板：账号（注册/登录）+ 自绘留言列表
         //   账号：POST https://auth-api.btzx2027class3.dpdns.org
         //         /api/send-code  {email}                   -> {success:true}
-        //         /api/register   {email, code, password}   -> {token}
-        //         /api/login      {email, password}         -> {token}
-        //         /api/check-token{token}                   -> {email}
+        //         /api/register   {email, code, password, nick} -> {token}
+        //         /api/login      {email, password, ua}     -> {token, nick}
+        //         /api/check-token{token}                   -> {email, nick}
+        //         /api/set-nick   {token, nick}             -> {success:true}
         //         失败一律 {error:"..."}（实测确认，HTTP 状态码不稳定，看 error 字段）
         //   留言：POST Twikoo GET_RECENT_COMMENTS / COMMENT_SUBMIT
         // 不用 twikoo.init 渲染，因为要自己往昵称后面插 [已验证]/[游客] 徽章
@@ -1724,9 +1725,9 @@ to {
             }
 
             // ---------- 修改昵称 ----------
-            // 账号后端没有改昵称的接口（实测只有 send-code / register / login / check-token），
-            // 所以昵称只存在本地：邮箱 -> 昵称表 + class3_nick。换设备登录时若本地没记录，
-            // 后端又不会返回昵称，就会退回邮箱前缀。
+            // 后端 /api/set-nick 把昵称存进 users.nick，之后 login / check-token 都会返回它，
+            // 换设备也能拿到。本地 class3_nick 和「邮箱 -> 昵称」表仍然保留，
+            // 一是给后端没返回昵称的老账号兜底，二是离线时也有得显示。
             function openNickEditor() {
                 if (!auth.token) return;
                 var pane = $('nick-pane'), btn = $('edit-nick-btn');
@@ -1748,6 +1749,7 @@ to {
             function saveNick() {
                 var input = $('nick-input');
                 var tip = $('nick-tip');
+                var btn = $('nick-save-btn');
                 function say(t, bad) {
                     if (!tip) return;
                     tip.textContent = t;
@@ -1759,16 +1761,30 @@ to {
                 if (nick.length > 20) { say('昵称最多 20 个字。', true); if (input) input.focus(); return; }
                 if (/[\[\]<>]/.test(nick)) { say('昵称不能包含 [ ] < > 这几个符号。', true); if (input) input.focus(); return; }
                 if (nickTaken(nick)) { say('这个昵称已经被别的邮箱用了。', true); if (input) input.focus(); return; }
+                if (nick === accountNick()) { closeNickEditor(); return; }
 
-                auth.nick = nick;
-                writeStore(NICK_KEY, nick);
-                rememberNick(nick, auth.email);
-                // 用这个邮箱发过的旧留言，指纹表里也把昵称同步掉
-                var aid = agentId(auth.email);
-                if (aid) rememberAgent(nick, auth.email);
-                applyAuthState();
-                closeNickEditor();
-                if ($('cm-msg')) { $('cm-msg').textContent = '昵称已改为 ' + nick + '。'; $('cm-msg').className = 'cm-msg'; }
+                // 先写后端，成功后再落本地：这样别的设备登录能拿到同一个昵称
+                if (btn) btn.disabled = true;
+                say('正在保存…', false);
+                postJSON(AUTH_API + '/api/set-nick', { token: auth.token, nick: nick }, function (err, data) {
+                    if (btn) btn.disabled = false;
+                    if (err || isFail(data)) {
+                        var m = (err && err.message) || '保存失败，请稍后再试';
+                        // token 失效就说清楚，别让人以为只是昵称没存上
+                        if (/过期|缺少token|登录/.test(m)) { signOut(); return; }
+                        say(m, true);
+                        return;
+                    }
+                    auth.nick = nick;
+                    writeStore(NICK_KEY, nick);
+                    rememberNick(nick, auth.email);
+                    // 用这个邮箱发过的旧留言，指纹表里也把昵称同步掉
+                    var aid = agentId(auth.email);
+                    if (aid) rememberAgent(nick, auth.email);
+                    applyAuthState();
+                    closeNickEditor();
+                    if ($('cm-msg')) { $('cm-msg').textContent = '昵称已改为 ' + nick + '。'; $('cm-msg').className = 'cm-msg'; }
+                });
             }
 
             function resetSendButton() {
@@ -1799,7 +1815,10 @@ to {
 
                 btn.disabled = true;
                 setStatus('正在登录…', 'busy');
-                postJSON(AUTH_API + '/api/login', { email: email, password: password }, function (err, data) {
+                // ua 是给后端做「新设备登录提醒」用的：服务端拿 IP，前端补设备信息
+                postJSON(AUTH_API + '/api/login',
+                    { email: email, password: password, ua: navigator.userAgent },
+                    function (err, data) {
                     btn.disabled = false;
                     if (err || isFail(data)) {
                         setStatus('登录失败：' + ((err && err.message) || '请稍后再试'), 'error');

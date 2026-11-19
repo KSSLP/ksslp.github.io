@@ -779,7 +779,10 @@
 
                 btn.disabled = true;
                 setStatus('正在登录…', 'busy');
-                postJSON(AUTH_API + '/api/login', { email: email, password: password }, function (err, data) {
+                // ua 是给后端做「新设备登录提醒」用的：服务端拿 IP，前端补设备信息
+                postJSON(AUTH_API + '/api/login',
+                    { email: email, password: password, ua: navigator.userAgent },
+                    function (err, data) {
                     btn.disabled = false;
                     if (err || isFail(data)) {
                         setStatus('登录失败：' + ((err && err.message) || '请稍后再试'), 'error');
@@ -909,6 +912,7 @@
 
             function saveNick() {
                 var input = $('nick-input'), tip = $('nick-tip');
+                var btn = $('nick-save-btn');
                 function say(t, bad) {
                     if (!tip) return;
                     tip.textContent = t;
@@ -920,18 +924,31 @@
                 if (nick.length > 20) { say('昵称最多 20 个字。', true); if (input) input.focus(); return; }
                 if (/[\[\]<>]/.test(nick)) { say('昵称不能包含 [ ] < > 这几个符号。', true); if (input) input.focus(); return; }
                 if (nickTaken(nick)) { say('这个昵称已经被别的邮箱用了。', true); if (input) input.focus(); return; }
+                if (nick === accountNick()) { closeNickEditor(); return; }
 
-                auth.nick = nick;
-                writeStore(NICK_KEY, nick);
-                rememberNick(nick, auth.email);
-                var aid = agentId(auth.email);
-                if (aid) rememberAgent(nick, auth.email);
-                closeNickEditor();
-                applyAuthState();
-                setStatus('✅ 已登录 (' + (auth.email || '') + ')', 'verified');
-                if (tip) tip.textContent = '昵称已改为 ' + nick + '。';
-                // 昵称变了，评论列表里的「已验证」判定要重算
-                if (ready && currentPath) renderEpisode(currentPath, currentLabel);
+                // 昵称存后端（users.nick），换设备登录也能拿到同一个
+                if (btn) btn.disabled = true;
+                say('正在保存…', false);
+                postJSON(AUTH_API + '/api/set-nick', { token: auth.token, nick: nick }, function (err, data) {
+                    if (btn) btn.disabled = false;
+                    if (err || isFail(data)) {
+                        var m = (err && err.message) || '保存失败，请稍后再试';
+                        if (/过期|缺少token|登录/.test(m)) { signOut(); return; }
+                        say(m, true);
+                        return;
+                    }
+                    auth.nick = nick;
+                    writeStore(NICK_KEY, nick);
+                    rememberNick(nick, auth.email);
+                    var aid = agentId(auth.email);
+                    if (aid) rememberAgent(nick, auth.email);
+                    closeNickEditor();
+                    applyAuthState();
+                    setStatus('✅ 已登录 (' + (auth.email || '') + ')', 'verified');
+                    if (tip) tip.textContent = '昵称已改为 ' + nick + '。';
+                    // 昵称变了，评论列表里的「已验证」判定要重算
+                    if (ready && currentPath) renderEpisode(currentPath, currentLabel);
+                });
             }
 
             // 启动时校验本地 token（与首页共用，所以首页登录过这里直接是已登录）
