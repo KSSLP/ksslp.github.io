@@ -462,6 +462,7 @@
             const SPARK_CONCURRENCY = 5;  // 并发上限
             const SPARK_RETRY = 3;        // 重试次数
             const SPARK_MSSIZE = 1 << 20; // 播放栅格粒度 1MB
+            const STREAM_GROW = 6 << 20;  // 可播范围每增长 6MB 才换一次源（换源会打断播放）
 
             const dlBar = document.getElementById('dl-bar');
             const dlFill = document.getElementById('dl-bar-fill');
@@ -534,56 +535,59 @@
                 if (!force && endMs <= job.publishedMs) return;
 
                 const parts = [];
+                let remain = job.total;
                 for (let i = 0; i < endMs; i++) {
                     const b = job.grid.get(i);
-                    if (b) parts.push(b);
-                    else parts.push(new Uint8Array(0)); // 理论上不会走到，防御一下
+                    if (b) {
+                        // 末尾那格只取到文件真实结尾，避免多出空白字节
+                        const take = Math.min(b.byteLength, remain);
+                        parts.push(take === b.byteLength ? b : b.subarray(0, take));
+                        remain -= take;
+                    } else {
+                        parts.push(new Uint8Array(0)); // 理论上不会走到，防御一下
+                    }
                 }
                 const blob = new Blob(parts, { type: job.mime });
                 const url = URL.createObjectURL(blob);
                 const old = curObjectUrl;
                 curObjectUrl = url;
+                job.phase = 'stream';   // 已进入边下边播阶段，换源 error 不计入失败
+                job.errCount = 0;
                 const t = videoPlayer.currentTime;
-                settingsOn(job);
+                const wasPlaying = !videoPlayer.paused && t > 0;
                 videoPlayer.src = url;
                 videoPlayer.load();
                 if (t > 0) videoPlayer.addEventListener('loadedmetadata', () => {
                     try { videoPlayer.currentTime = t; } catch (e) {}
+                    if (wasPlaying) videoPlayer.play().catch(() => {});
                 }, { once: true });
                 if (old) setTimeout(() => URL.revokeObjectURL(old), 30000);
                 job.publishedMs = endMs;
                 job.publishedEnd = readyUpTo;
             }
 
-            function settingsOn(job) {
-                job._first = job._first !== false ? true : false;
-                if (job._first) {
-                    job._first = false;
-                    videoPlayer.play().catch(() => {
-                        console.log('自动播放被拦截，用户需手动点击播放按钮。');
-                    });
-                }
-            }
-
-            // 用连续覆盖的前缀推进 readyEnd：当 [0, readyEnd] 全在栅格里时才前进
+            // 用连续覆盖的前缀推进 readyEnd：只有当整格确实写满时才算可播
             function advanceReady(job) {
                 const ms = job.mssize;
-                while (true) {
-                    const idx = Math.floor(job.readyEnd / ms);
-                    if (job.readyEnd + 1 >= job.total) { job.readyEnd = job.total - 1; break; }
-                    if (!job.grid.has(idx)) break;
-                    job.readyEnd = Math.min(job.total - 1, (idx + 1) * ms - 1);
+                const total = job.total;
+                let idx = Math.floor((job.readyEnd + 1) / ms);
+                while (idx * ms < total) {
+                    const cell = job.grid.get(idx);
+                    if (!cell) break;
+                    const want = Math.min(ms, total - idx * ms);
+                    if (cell.byteLength < want) break; // 这格还没填满，不能算可播
+                    job.readyEnd = Math.min(total - 1, (idx + 1) * ms - 1);
+                    idx++;
                 }
             }
 
-            async function startStream(filename, job, forceFull) {
+            async function startStream(filename, job) {
                 job.controllers = new Set();
                 job.grid = new Map();
                 job.mssize = SPARK_MSSIZE;
                 job.publishedMs = 0;
                 job.publishedEnd = -1;
                 job.readyEnd = -1;
-                job._first = true;
                 job.url = `./yskbl/${encodeURIComponent(filename)}`;
 
                 // 1) 先拿文件总大小，并确认服务端支持 Range
@@ -605,9 +609,6 @@
                 }
                 job.total = total;
                 job.mime = mime;
-                job.grid.set(0, null);
-                job.grid.delete(0);
-                job.readyEnd = -1;
 
                 // 2) 均分成 16 块
                 const n = SPARK_CHUNKS;
@@ -622,7 +623,6 @@
                 // 3) 并发池：同时最多 5 个，谁完成就拉下一个
                 let done = 0;
                 let gotBytes = 0;
-                let marks = [];
                 showBar();
                 paintBar(0, total, '');
 
@@ -634,10 +634,27 @@
                         const buf = await fetchChunk(job, c.index, c.start, c.end);
                         if (job.aborted) return;
                         if (!buf) return; // 重试耗尽，job.error 已记下
-                        // 写入播放栅格
+                        // 写入播放栅格：按 1MB 栅格边界精确切片，避免跨片重复
                         const ms = job.mssize;
-                        for (let p = c.start, k = 0; p <= c.end; p += ms, k += buf.byteLength < ms ? buf.byteLength : ms) {
-                            job.grid.set(Math.floor(p / ms), buf.subarray(k));
+                        let off = 0;
+                        for (let p = c.start; p <= c.end; ) {
+                            const g = Math.floor(p / ms);
+                            const gEnd = Math.min(c.end, (g + 1) * ms - 1);
+                            const slice = buf.subarray(off, off + (gEnd - p + 1));
+                            off += gEnd - p + 1;
+                            p = gEnd + 1;
+                            const cell = job.grid.get(g);
+                            if (!cell) {
+                                // 新建格子：记录它覆盖的字节区间 [lo, hi]
+                                const lo = g * ms;
+                                const bytes = new Uint8Array(Math.min(ms, job.total - lo));
+                                bytes.set(slice, 0);
+                                job.grid.set(g, { bytes, have: slice.byteLength });
+                            } else {
+                                const lo = g * ms;
+                                cell.bytes.set(slice, 0);
+                                cell.have = Math.max(cell.have, Math.min(ms, job.total - lo, (c.end - lo + 1)));
+                            }
                         }
                         done++;
                         gotBytes += c.len;
@@ -645,9 +662,16 @@
                         const secs = (performance.now() - t0) / 1000;
                         const speed = secs > 0.3 ? fmtBytes(gotBytes / secs) + '/s' : '';
                         paintBar(gotBytes, total, speed);
-                        // 能拼就先拼，先下完的前缀立刻可播
+                        // 先下完的前缀尽早可播：只在「可播范围明显变长」时才换源，
+                        // 频繁换源会不停打断播放（每次 load 都要重新解码）
                         advanceReady(job);
-                        if (job.readyEnd >= 0) rebuildSource(job, done === chunks.length);
+                        if (job.readyEnd >= 0) {
+                            const needMs = Math.floor(job.readyEnd / job.mssize) + 1;
+                            const grown = (needMs - job.publishedMs) * job.mssize;
+                            if (job.publishedMs === 0 || done === chunks.length || grown >= STREAM_GROW) {
+                                rebuildSource(job, done === chunks.length);
+                            }
+                        }
                     }
                 }
                 const pool = [];
@@ -656,8 +680,7 @@
 
                 if (job.aborted) return;
                 if (job.error) throw job.error;
-                // 全部完成，强制拼一次完整源
-                forceFull = true;
+                // 全部完成，强制拼一次完整源（此时再换源不会再有断流）
                 rebuildSource(job, true);
                 if (dlBar) dlBar.classList.add('done');
                 if (dlText) dlText.textContent = `已就绪  ${fmtBytes(total)}`;
@@ -678,13 +701,18 @@
 
                 // 切集：把上一集的下载任务全部掐掉，别抢带宽
                 abortJob(curJob);
-                const job = { aborted: false };
+                const job = { aborted: false, phase: 'probe', errCount: 0 };
                 curJob = job;
 
                 videoPlayer.onerror = () => {
-                    // 只有当没有可用源、或彻底失败时才报错；分段下载过程中换源引起的 error 忽略
-                    if (job.aborted || job.silentError) return;
-                    failEpisode(filename);
+                    // 下载/换源过程中出现的 error 大多是换源引起的，不能当成「文件缺失」
+                    if (job.aborted) return;
+                    job.errCount++;
+                    console.warn(`[播放器 error] 阶段=${job.phase} 第 ${job.errCount} 次`);
+                    // 只有「探测/直链播放」阶段连续出错、且没有可用源，才算真的缺失
+                    if (job.phase === 'direct' && job.errCount >= 2 && !videoPlayer.src.startsWith('blob:')) {
+                        failEpisode(filename);
+                    }
                 };
 
                 if (title && title.trim() !== '') {
@@ -704,8 +732,10 @@
                     if (dlText) dlText.textContent = '分段下载失败：' + ((err && err.message) || '未知错误');
                     if (dlSpeed) dlSpeed.textContent = '';
                     // 分片路线失败时退回原生直链，至少还能看（但没法边下边播）
-                    job.silentError = true;
-                    videoPlayer.src = job.url || `./yskbl/${encodeURIComponent(filename)}`;
+                    job.phase = 'direct';
+                    job.errCount = 0;
+                    const direct = job.url || `./yskbl/${encodeURIComponent(filename)}`;
+                    videoPlayer.src = direct;
                     videoPlayer.load();
                     videoPlayer.play().catch(() => {});
                 });
