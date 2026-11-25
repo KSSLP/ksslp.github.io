@@ -108,6 +108,25 @@
         }
         .error-overlay svg { width: 52px; height: 52px; fill: #55637c; margin-bottom: 0.5rem; }
 
+        /* 分段下载进度条 */
+        .dl-bar { margin: 0.9rem 0.2rem 0; }
+        .dl-bar__track {
+            height: 6px; border-radius: 999px; overflow: hidden;
+            background: rgba(91, 141, 239, 0.14);
+        }
+        .dl-bar__fill {
+            height: 100%; width: 0%; border-radius: 999px;
+            background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
+            transition: width 0.25s ease;
+        }
+        .dl-bar__meta {
+            display: flex; justify-content: space-between; gap: 0.8rem;
+            margin-top: 0.45rem; font-size: 0.78rem; color: var(--ink-soft);
+            font-variant-numeric: tabular-nums;
+        }
+        .dl-bar.done .dl-bar__fill { background: linear-gradient(120deg, #35b37e, #5ec3c0); }
+        .dl-bar.fail .dl-bar__fill { background: #d64545; }
+
         .comment-card {
             width: 100%; max-width: 1000px; margin: 2rem auto 0; padding: 2.2rem 2rem;
             background: var(--paper); border-radius: 2rem; border: 1px solid rgba(255, 255, 255, 0.7);
@@ -249,6 +268,15 @@
             <div class="error-overlay" id="error-overlay" style="display: none;">
                 <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 <span id="error-text">本集内容缺失</span>
+            </div>
+        </div>
+
+        <!-- 分段下载进度条 -->
+        <div class="dl-bar" id="dl-bar" hidden>
+            <div class="dl-bar__track"><div class="dl-bar__fill" id="dl-bar-fill"></div></div>
+            <div class="dl-bar__meta">
+                <span id="dl-bar-text">0%</span>
+                <span id="dl-bar-speed"></span>
             </div>
         </div>
     </div>
@@ -424,26 +452,239 @@
             }
 
             // ==========================================
-            // 3. 加载并播放
+            // 3. 加载并播放（16 分片并发下载，先下完的先拼接可播）
             // ==========================================
+            // 分片策略：
+            //   · 文件切成 16 块，但同一时刻最多只发 5 个请求（防 Cloudflare 风控）
+            //   · 每块下完立刻并入播放栅格，能播就立刻换源，不用等全部下完
+            //   · 单块失败延迟 1 秒重试，最多 3 次
+            const SPARK_CHUNKS = 16;      // 分片总数
+            const SPARK_CONCURRENCY = 5;  // 并发上限
+            const SPARK_RETRY = 3;        // 重试次数
+            const SPARK_MSSIZE = 1 << 20; // 播放栅格粒度 1MB
+
+            const dlBar = document.getElementById('dl-bar');
+            const dlFill = document.getElementById('dl-bar-fill');
+            const dlText = document.getElementById('dl-bar-text');
+            const dlSpeed = document.getElementById('dl-bar-speed');
+
+            let curJob = null;      // 当前下载任务（切集时用来中断）
+            let curObjectUrl = '';  // 当前 blob URL，换集时要 revoke
+
+            function fmtBytes(n) {
+                if (!n || n < 0) return '0 B';
+                const u = ['B', 'KB', 'MB', 'GB'];
+                let i = 0;
+                while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+                return (i === 0 ? n : n.toFixed(n < 10 ? 2 : 1)) + ' ' + u[i];
+            }
+
+            function showBar() { if (dlBar) { dlBar.hidden = false; dlBar.className = 'dl-bar'; } }
+            function hideBar() { if (dlBar) dlBar.hidden = true; }
+
+            function paintBar(got, total, speed) {
+                if (!dlBar) return;
+                const pct = total ? Math.min(100, (got / total) * 100) : 0;
+                if (dlFill) dlFill.style.width = pct.toFixed(2) + '%';
+                if (dlText) dlText.textContent = `${pct.toFixed(1)}%  ${fmtBytes(got)} / ${fmtBytes(total)}`;
+                if (dlSpeed) dlSpeed.textContent = speed ? speed : '';
+            }
+
+            // 一次 Range 请求；失败返回 null 由上层重试
+            async function fetchChunk(job, index, start, end) {
+                const len = end - start + 1;
+                let lastErr = null;
+                for (let attempt = 0; attempt <= SPARK_RETRY; attempt++) {
+                    if (job.aborted) return null;
+                    if (attempt > 0) await new Promise(r => setTimeout(r, 1000));
+                    if (job.aborted) return null;
+                    const ctrl = new AbortController();
+                    job.controllers.add(ctrl);
+                    try {
+                        const res = await fetch(job.url, {
+                            headers: { Range: `bytes=${start}-${end}` },
+                            signal: ctrl.signal,
+                            cache: 'default',
+                        });
+                        if (res.status !== 206) {
+                            // 206 才是标准分段响应；200 说明整包下发了，别浪费流量
+                            throw new Error(`HTTP ${res.status}`);
+                        }
+                        const buf = await res.arrayBuffer();
+                        if (buf.byteLength !== len) throw new Error(`长度不符 ${buf.byteLength}/${len}`);
+                        return new Uint8Array(buf);
+                    } catch (e) {
+                        if (job.aborted) return null;
+                        lastErr = e;
+                        console.warn(`[分片 ${index + 1}] 第 ${attempt + 1} 次失败：`, e.message || e);
+                    } finally {
+                        job.controllers.delete(ctrl);
+                    }
+                }
+                job.error = lastErr;
+                return null;
+            }
+
+            // 把已下完的连续分片拼成 blob URL，尽量早地给出可播源
+            function rebuildSource(job, force) {
+                const ms = job.mssize;
+                const readyUpTo = job.readyEnd; // 已连续覆盖到的字节（含）
+                if (readyUpTo <= job.publishedEnd && !force) return;
+                const endMs = Math.floor(readyUpTo / ms) + 1;
+                if (!force && endMs <= job.publishedMs) return;
+
+                const parts = [];
+                for (let i = 0; i < endMs; i++) {
+                    const b = job.grid.get(i);
+                    if (b) parts.push(b);
+                    else parts.push(new Uint8Array(0)); // 理论上不会走到，防御一下
+                }
+                const blob = new Blob(parts, { type: job.mime });
+                const url = URL.createObjectURL(blob);
+                const old = curObjectUrl;
+                curObjectUrl = url;
+                const t = videoPlayer.currentTime;
+                settingsOn(job);
+                videoPlayer.src = url;
+                videoPlayer.load();
+                if (t > 0) videoPlayer.addEventListener('loadedmetadata', () => {
+                    try { videoPlayer.currentTime = t; } catch (e) {}
+                }, { once: true });
+                if (old) setTimeout(() => URL.revokeObjectURL(old), 30000);
+                job.publishedMs = endMs;
+                job.publishedEnd = readyUpTo;
+            }
+
+            function settingsOn(job) {
+                job._first = job._first !== false ? true : false;
+                if (job._first) {
+                    job._first = false;
+                    videoPlayer.play().catch(() => {
+                        console.log('自动播放被拦截，用户需手动点击播放按钮。');
+                    });
+                }
+            }
+
+            // 用连续覆盖的前缀推进 readyEnd：当 [0, readyEnd] 全在栅格里时才前进
+            function advanceReady(job) {
+                const ms = job.mssize;
+                while (true) {
+                    const idx = Math.floor(job.readyEnd / ms);
+                    if (job.readyEnd + 1 >= job.total) { job.readyEnd = job.total - 1; break; }
+                    if (!job.grid.has(idx)) break;
+                    job.readyEnd = Math.min(job.total - 1, (idx + 1) * ms - 1);
+                }
+            }
+
+            async function startStream(filename, job, forceFull) {
+                job.controllers = new Set();
+                job.grid = new Map();
+                job.mssize = SPARK_MSSIZE;
+                job.publishedMs = 0;
+                job.publishedEnd = -1;
+                job.readyEnd = -1;
+                job._first = true;
+                job.url = `./yskbl/${encodeURIComponent(filename)}`;
+
+                // 1) 先拿文件总大小，并确认服务端支持 Range
+                let head;
+                try {
+                    head = await fetch(job.url, { method: 'HEAD', cache: 'default' });
+                } catch (e) {
+                    head = null;
+                }
+                if (!head || !head.ok) {
+                    // 有的 CDN 不支持 HEAD，退回普通 GET 的首个分段
+                    throw new Error('无法获取视频信息');
+                }
+                const total = parseInt(head.headers.get('content-length') || '0', 10);
+                const accepts = (head.headers.get('accept-ranges') || '').toLowerCase();
+                const mime = head.headers.get('content-type') || 'video/mp4';
+                if (!total || (accepts && accepts !== 'bytes')) {
+                    throw new Error(accepts && accepts !== 'bytes' ? '服务端不支持分段下载' : '文件大小为 0');
+                }
+                job.total = total;
+                job.mime = mime;
+                job.grid.set(0, null);
+                job.grid.delete(0);
+                job.readyEnd = -1;
+
+                // 2) 均分成 16 块
+                const n = SPARK_CHUNKS;
+                const base = Math.floor(total / n);
+                const chunks = [];
+                for (let i = 0; i < n; i++) {
+                    const s = i * base;
+                    const e = i === n - 1 ? total - 1 : s + base - 1;
+                    if (s <= e) chunks.push({ index: i, start: s, end: e, len: e - s + 1 });
+                }
+
+                // 3) 并发池：同时最多 5 个，谁完成就拉下一个
+                let done = 0;
+                let gotBytes = 0;
+                let marks = [];
+                showBar();
+                paintBar(0, total, '');
+
+                const t0 = performance.now();
+                let cursor = 0;
+                async function worker() {
+                    while (cursor < chunks.length && !job.aborted) {
+                        const c = chunks[cursor++];
+                        const buf = await fetchChunk(job, c.index, c.start, c.end);
+                        if (job.aborted) return;
+                        if (!buf) return; // 重试耗尽，job.error 已记下
+                        // 写入播放栅格
+                        const ms = job.mssize;
+                        for (let p = c.start, k = 0; p <= c.end; p += ms, k += buf.byteLength < ms ? buf.byteLength : ms) {
+                            job.grid.set(Math.floor(p / ms), buf.subarray(k));
+                        }
+                        done++;
+                        gotBytes += c.len;
+                        // 进度
+                        const secs = (performance.now() - t0) / 1000;
+                        const speed = secs > 0.3 ? fmtBytes(gotBytes / secs) + '/s' : '';
+                        paintBar(gotBytes, total, speed);
+                        // 能拼就先拼，先下完的前缀立刻可播
+                        advanceReady(job);
+                        if (job.readyEnd >= 0) rebuildSource(job, done === chunks.length);
+                    }
+                }
+                const pool = [];
+                for (let i = 0; i < Math.min(SPARK_CONCURRENCY, chunks.length); i++) pool.push(worker());
+                await Promise.all(pool);
+
+                if (job.aborted) return;
+                if (job.error) throw job.error;
+                // 全部完成，强制拼一次完整源
+                forceFull = true;
+                rebuildSource(job, true);
+                if (dlBar) dlBar.classList.add('done');
+                if (dlText) dlText.textContent = `已就绪  ${fmtBytes(total)}`;
+                if (dlSpeed) dlSpeed.textContent = '';
+                setTimeout(hideBar, 2500);
+            }
+
+            function abortJob(job) {
+                if (!job || job.aborted) return;
+                job.aborted = true;
+                job.controllers.forEach(c => { try { c.abort(); } catch (e) {} });
+                job.controllers.clear();
+            }
+
             function loadEpisode(filename, title) {
                 errorOverlay.style.display = 'none';
                 videoPlayer.style.display = 'block';
 
-                const safeFilename = encodeURIComponent(filename);
-                const videoSrc = `./yskbl/${safeFilename}`;
-
-                videoPlayer.src = videoSrc;
-                videoPlayer.load();
-
-                videoPlayer.play().catch(e => {
-                    console.log("自动播放被拦截，用户需手动点击播放按钮。");
-                });
+                // 切集：把上一集的下载任务全部掐掉，别抢带宽
+                abortJob(curJob);
+                const job = { aborted: false };
+                curJob = job;
 
                 videoPlayer.onerror = () => {
-                    videoPlayer.style.display = 'none';
-                    errorOverlay.style.display = 'flex';
-                    errorText.innerHTML = `本集内容缺失<br><span style="font-size: 0.85rem; color: #ffd166; margin-top: 8px; display: inline-block; word-break: break-all;">网页尝试寻找：<br>yskbl/${filename}</span><br><span style="font-size: 0.8rem; color: #8fa1b8; margin-top: 4px; display: inline-block;">请检查文件是否存在且大小写一致</span>`;
+                    // 只有当没有可用源、或彻底失败时才报错；分段下载过程中换源引起的 error 忽略
+                    if (job.aborted || job.silentError) return;
+                    failEpisode(filename);
                 };
 
                 if (title && title.trim() !== '') {
@@ -452,6 +693,28 @@
                 } else {
                     videoTitleArea.classList.remove('show');
                 }
+
+                showBar();
+                paintBar(0, 0, '正在探测文件大小…');
+
+                startStream(filename, job).catch(err => {
+                    if (job.aborted) return;
+                    console.warn('[分段下载失败]', err && err.message);
+                    if (dlBar) { dlBar.classList.add('fail'); }
+                    if (dlText) dlText.textContent = '分段下载失败：' + ((err && err.message) || '未知错误');
+                    if (dlSpeed) dlSpeed.textContent = '';
+                    // 分片路线失败时退回原生直链，至少还能看（但没法边下边播）
+                    job.silentError = true;
+                    videoPlayer.src = job.url || `./yskbl/${encodeURIComponent(filename)}`;
+                    videoPlayer.load();
+                    videoPlayer.play().catch(() => {});
+                });
+            }
+
+            function failEpisode(filename) {
+                videoPlayer.style.display = 'none';
+                errorOverlay.style.display = 'flex';
+                errorText.innerHTML = `本集内容缺失<br><span style="font-size: 0.85rem; color: #ffd166; margin-top: 8px; display: inline-block; word-break: break-all;">网页尝试寻找：<br>yskbl/${filename}</span><br><span style="font-size: 0.8rem; color: #8fa1b8; margin-top: 4px; display: inline-block;">请检查文件是否存在且大小写一致</span>`;
             }
 
             fetchVideoList();
