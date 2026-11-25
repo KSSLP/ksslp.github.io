@@ -111,11 +111,21 @@
         /* 分段下载进度条 */
         .dl-bar { margin: 0.9rem 0.2rem 0; }
         .dl-bar__track {
-            height: 6px; border-radius: 999px; overflow: hidden;
+            position: relative;
+            height: 8px; border-radius: 999px; overflow: hidden;
             background: rgba(91, 141, 239, 0.14);
         }
+        /* 浅色 = 已下载（可能还是乱序的块） */
         .dl-bar__fill {
-            height: 100%; width: 0%; border-radius: 999px;
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+            border-radius: 999px;
+            background: rgba(91, 141, 239, 0.45);
+            transition: width 0.25s ease;
+        }
+        /* 深色 = 已经连续、可以直接播的部分 */
+        .dl-bar__play {
+            position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+            border-radius: 999px;
             background: linear-gradient(120deg, var(--accent-1), var(--accent-2));
             transition: width 0.25s ease;
         }
@@ -124,7 +134,8 @@
             margin-top: 0.45rem; font-size: 0.78rem; color: var(--ink-soft);
             font-variant-numeric: tabular-nums;
         }
-        .dl-bar.done .dl-bar__fill { background: linear-gradient(120deg, #35b37e, #5ec3c0); }
+        .dl-bar.done .dl-bar__fill,
+        .dl-bar.done .dl-bar__play { background: linear-gradient(120deg, #35b37e, #5ec3c0); }
         .dl-bar.fail .dl-bar__fill { background: #d64545; }
 
         .comment-card {
@@ -273,7 +284,10 @@
 
         <!-- 分段下载进度条 -->
         <div class="dl-bar" id="dl-bar" hidden>
-            <div class="dl-bar__track"><div class="dl-bar__fill" id="dl-bar-fill"></div></div>
+            <div class="dl-bar__track">
+                <div class="dl-bar__fill" id="dl-bar-fill"></div>
+                <div class="dl-bar__play" id="dl-bar-play"></div>
+            </div>
             <div class="dl-bar__meta">
                 <span id="dl-bar-text">0%</span>
                 <span id="dl-bar-speed"></span>
@@ -466,6 +480,7 @@
 
             const dlBar = document.getElementById('dl-bar');
             const dlFill = document.getElementById('dl-bar-fill');
+            const dlPlayFill = document.getElementById('dl-bar-play');
             const dlText = document.getElementById('dl-bar-text');
             const dlSpeed = document.getElementById('dl-bar-speed');
 
@@ -483,11 +498,20 @@
             function showBar() { if (dlBar) { dlBar.hidden = false; dlBar.className = 'dl-bar'; } }
             function hideBar() { if (dlBar) dlBar.hidden = true; }
 
-            function paintBar(got, total, speed) {
+            function paintBar(got, total, speed, playable) {
                 if (!dlBar) return;
                 const pct = total ? Math.min(100, (got / total) * 100) : 0;
                 if (dlFill) dlFill.style.width = pct.toFixed(2) + '%';
-                if (dlText) dlText.textContent = `${pct.toFixed(1)}%  ${fmtBytes(got)} / ${fmtBytes(total)}`;
+                // 可播进度叠在下载进度上，一眼看出「下载到哪」和「能播到哪」
+                if (dlPlayFill) {
+                    const pp = total && playable ? Math.min(100, (playable / total) * 100) : 0;
+                    dlPlayFill.style.width = pp.toFixed(2) + '%';
+                }
+                if (dlText) {
+                    var s = `${pct.toFixed(1)}%  ${fmtBytes(got)} / ${fmtBytes(total)}`;
+                    if (playable > 0 && playable < got) s += `  ·  可播 ${fmtBytes(playable)}`;
+                    dlText.textContent = s;
+                }
                 if (dlSpeed) dlSpeed.textContent = speed ? speed : '';
             }
 
@@ -537,11 +561,11 @@
                 const parts = [];
                 let remain = job.total;
                 for (let i = 0; i < endMs; i++) {
-                    const b = job.grid.get(i);
-                    if (b) {
+                    const cell = job.grid.get(i);
+                    if (cell && cell.bytes) {
                         // 末尾那格只取到文件真实结尾，避免多出空白字节
-                        const take = Math.min(b.byteLength, remain);
-                        parts.push(take === b.byteLength ? b : b.subarray(0, take));
+                        const take = Math.min(cell.bytes.byteLength, remain, cell.have);
+                        parts.push(cell.bytes.subarray(0, take));
                         remain -= take;
                     } else {
                         parts.push(new Uint8Array(0)); // 理论上不会走到，防御一下
@@ -573,9 +597,9 @@
                 let idx = Math.floor((job.readyEnd + 1) / ms);
                 while (idx * ms < total) {
                     const cell = job.grid.get(idx);
-                    if (!cell) break;
+                    if (!cell || !cell.bytes) break;
                     const want = Math.min(ms, total - idx * ms);
-                    if (cell.byteLength < want) break; // 这格还没填满，不能算可播
+                    if (cell.have < want) break; // 这格还没填满，不能算可播
                     job.readyEnd = Math.min(total - 1, (idx + 1) * ms - 1);
                     idx++;
                 }
@@ -634,34 +658,28 @@
                         const buf = await fetchChunk(job, c.index, c.start, c.end);
                         if (job.aborted) return;
                         if (!buf) return; // 重试耗尽，job.error 已记下
-                        // 写入播放栅格：按 1MB 栅格边界精确切片，避免跨片重复
+                        // 写入播放栅格：按字节绝对位置落盘，跨片也不会错位
                         const ms = job.mssize;
-                        let off = 0;
                         for (let p = c.start; p <= c.end; ) {
                             const g = Math.floor(p / ms);
                             const gEnd = Math.min(c.end, (g + 1) * ms - 1);
-                            const slice = buf.subarray(off, off + (gEnd - p + 1));
-                            off += gEnd - p + 1;
-                            p = gEnd + 1;
-                            const cell = job.grid.get(g);
+                            const lo = g * ms;
+                            let cell = job.grid.get(g);
                             if (!cell) {
-                                // 新建格子：记录它覆盖的字节区间 [lo, hi]
-                                const lo = g * ms;
-                                const bytes = new Uint8Array(Math.min(ms, job.total - lo));
-                                bytes.set(slice, 0);
-                                job.grid.set(g, { bytes, have: slice.byteLength });
-                            } else {
-                                const lo = g * ms;
-                                cell.bytes.set(slice, 0);
-                                cell.have = Math.max(cell.have, Math.min(ms, job.total - lo, (c.end - lo + 1)));
+                                cell = { bytes: new Uint8Array(Math.min(ms, job.total - lo)), have: 0 };
+                                job.grid.set(g, cell);
                             }
+                            const src = buf.subarray(p - c.start, p - c.start + (gEnd - p + 1));
+                            cell.bytes.set(src, p - lo);
+                            cell.have = Math.max(cell.have, gEnd - lo + 1);
+                            p = gEnd + 1;
                         }
                         done++;
                         gotBytes += c.len;
                         // 进度
                         const secs = (performance.now() - t0) / 1000;
                         const speed = secs > 0.3 ? fmtBytes(gotBytes / secs) + '/s' : '';
-                        paintBar(gotBytes, total, speed);
+                        paintBar(gotBytes, total, speed, job.readyEnd + 1);
                         // 先下完的前缀尽早可播：只在「可播范围明显变长」时才换源，
                         // 频繁换源会不停打断播放（每次 load 都要重新解码）
                         advanceReady(job);
@@ -723,7 +741,8 @@
                 }
 
                 showBar();
-                paintBar(0, 0, '正在探测文件大小…');
+                paintBar(0, 0, '');
+                if (dlText) dlText.textContent = '正在探测文件大小…';
 
                 startStream(filename, job).catch(err => {
                     if (job.aborted) return;
